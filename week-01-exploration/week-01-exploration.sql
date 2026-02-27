@@ -151,3 +151,9 @@ FROM sales_raw;
 #min and max return those functions 
 #count(distinct) indicates the total between the range
 #output: 3 columns, with the oldest date, recent date and total order
+#Save the file as: week-01-exploration.sql
+#Go to cmd and put: cd C:\ARCHIVOS\DOCUMENTS\Alvaro\data-analytics-study\week-01-exploration
+					# git add .
+					# git commit -m "week-01-day-1: SQL exploration — SELECT, COUNT, DISTINCT, date range"
+                    # git push
+#Now it is on Github
