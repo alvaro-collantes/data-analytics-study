@@ -157,3 +157,16 @@ FROM sales_raw;
 					# git commit -m "week-01-day-1: SQL exploration — SELECT, COUNT, DISTINCT, date range"
                     # git push
 #Now it is on Github
+
+#Aditional Practice
+USE superstore;
+
+select *
+from sales_raw
+limit 10;
+
+SELECT 
+    MIN(ship_date) AS 'Oldest Date',
+    MAX(ship_date) AS 'Most Recent Date',
+    COUNT(DISTINCT order_id) AS 'Total Orders'
+FROM sales_raw;
