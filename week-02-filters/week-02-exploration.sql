@@ -210,4 +210,15 @@ select order_date, ship_date, customer_id
 from sales_raw
 where postal_code >40000;
 
+#Aditional Practice
+USE superstore;
+
+select *
+from sales_raw;
+
+select row_id, order_date,customer_name,city, sales * quantity as Income
+from sales_raw
+where region IN('South','West')
+order by Income Asc
+limit 10;
 
