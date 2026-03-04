@@ -216,9 +216,69 @@ USE superstore;
 select *
 from sales_raw;
 
+#Use of IN
 select row_id, order_date,customer_name,city, sales * quantity as Income
 from sales_raw
 where region IN('South','West')
 order by Income Asc
 limit 10;
 
+#What is the total sales amount and number of transactions by region, category and sub-category, only considering orders with a profit greater than or equal to $100? Order the results by category.
+select region, category, sub_category,sum(sales) as 'Total Sales', count(*) as 'Total Count'
+from sales_raw
+where profit >= 100
+group by region, category, sub_category
+order by category asc;
+# GROUP BY must include ALL non-aggregated columns from SELECT
+# Aggregate functions (SUM, COUNT, AVG, MIN, MAX) in SELECT 
+# are what make GROUP BY useful — they calculate one value per group
+# Without aggregate functions, GROUP BY behaves like DISTINCT
+
+#Practice queries
+# --- INTERMEDIATE ---
+
+# 1. What is the average discount and total profit by segment and region,
+#    only for orders shipped via Second Class? Order by total profit descending.
+
+# 2. How many unique customers placed orders in each region per year?
+#    Only include years with more than 100 unique customers.
+
+# 3. What is the total sales and total quantity sold by category,
+#    only for orders where the discount is greater than 0?
+#    Include the average sales per order.
+
+# 4. Which ship modes have an average delivery time greater than 4 days?
+#    Show the ship mode and the average days to ship.
+
+# 5. What is the total profit by sub-category, only for the West and East regions?
+#    Exclude sub-categories with a total loss (negative profit).
+
+# --- INTERMEDIATE-ADVANCED ---
+
+# 6. For each category, what percentage of total company sales does it represent?
+#    Show category, total sales and the percentage.
+
+# 7. Which customers have placed more than 5 orders and have a total profit
+#    greater than $500? Show customer name, number of orders and total profit.
+
+# 8. What is the most sold sub-category (by quantity) in each region?
+
+# 9. Show the top 3 cities by total sales within each region.
+
+# 10. Which categories had higher total sales in 2017 compared to 2016?
+#     Show the category, sales in 2016, sales in 2017 and the difference.
+
+# --- ADVANCED ---
+
+# 11. For each customer, what is their most recent order date and how many days
+#     ago was it from the last date in the dataset?
+
+# 12. What is the month-over-month sales growth percentage for the year 2017?
+
+# 13. Which products have been ordered in every single region?
+
+# 14. For each region, show the category that generates the highest
+#     profit margin (profit/sales).
+
+# 15. Rank customers by total sales within each segment,
+#     showing only the top 3 per segment.
