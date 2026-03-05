@@ -436,6 +436,93 @@ having `Products per Order` > 3
 order by `Products per Order` Desc
 ;
 
+#practice
+
+# 1. What is the total sales and average profit by state?
+#    Only include states where total sales exceed $30,000.
+#    Exclude states with negative average profit.
+#    Order by total sales descending.
+
+select state, sum(sales) as total_sales, avg(profit) as avg_profit
+from sales_raw
+group by state
+having total_sales > 30000 and avg_profit > 0
+order by total_sales desc
+;
+#create 2 agg funct & use them as filter with and operator
+
+# 2. How many unique products were sold by category and region?
+#    Only include orders placed in 2015 and 2016.
+#    Only show combinations with more than 100 unique products.
+#    Order by category ascending.
+
+select year(order_date) as Years ,category, region, count(distinct(product_id)) as total_products 
+from sales_raw
+where year(order_date) in ('2015','2016')
+group by Years,category, region
+having total_products > 100
+order by category asc;
+#use years as filter in when(not alias, just the sintax) and use it for grouping 
+
+# 3. What is the total quantity sold and average sales by segment and ship mode?
+#    Only include orders where profit is greater than 0.
+#    Exclude combinations where average sales are below $150.
+#    Order by segment and average sales descending.
+
+select segment, ship_mode, sum(quantity) as total_quantity_sold,avg(sales) as avg_sales
+from sales_raw
+where profit > 0
+group by segment, ship_mode
+having avg_sales >= 150
+order by segment desc, avg_sales desc;
+
+# 4. Which product categories have more than 500 orders with a discount
+#    greater than 0.15? Show category, number of orders and average discount.
+#    Order by number of orders descending.
+
+select category, count(discount) as total_orders, avg(discount) as avg_discount
+from sales_raw
+group by category
+having total_orders > 500 and avg_discount > 0.15
+order by total_orders desc
+;
+
+# 5. What is the average delivery time in days by region and ship mode?
+#    Only include orders from 2017.
+#    Show only combinations where average delivery time is between 2 and 6 days.
+#    Order by region and average delivery time ascending.
+
+select region,ship_mode,avg(datediff(ship_date,order_date)) as avg_delivery_time
+from sales_raw
+where year(order_date) = 2017
+group by region, ship_mode
+having avg_delivery_time between 2 and 6 
+order by region asc, avg_delivery_time asc
+;
+
+# CASE WHEN
+
+# 6. Classify each order as 'High' (sales > 500), 'Medium' (sales between 100 and 500)
+#    or 'Low' (sales < 100). Show the order_id, sales and the classification.
+#    Order by sales descending.
+
+# 7. For each category, show the total sales and classify the category as
+#    'Top Performer' if total sales exceed $800,000, 'Mid Performer' if between
+#    $400,000 and $800,000, or 'Low Performer' if below $400,000.
+
+# 8. Show each region with its total profit and classify it as 'Profitable'
+#    if total profit is positive or 'Loss' if negative.
+#    Order by total profit descending.
+
+# 9. For each order, calculate the profit margin (profit/sales) and classify it as
+#    'Excellent' (>30%), 'Good' (10-30%), 'Break Even' (0-10%) or 'Loss' (negative).
+#    Show order_id, sales, profit, profit margin and classification.
+#    Only show orders where sales are greater than $500.
+
+# 10. Count how many orders are 'Profitable' (profit > 0) and how many are
+#     'Loss' (profit <= 0) per category and region.
+#     Show category, region, profitable_orders and loss_orders in the same row.
+#     Order by category.
 
 # --- INTERMEDIATE-ADVANCED ---
 
