@@ -620,6 +620,19 @@ order by region asc , years asc
 #    and the difference between them.
 #    Order by difference descending.
 
+SELECT segment, 
+    SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END) AS profitable_orders,
+    SUM(CASE WHEN profit <= 0 THEN 1 ELSE 0 END) AS loss_orders,
+    SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END) - SUM(CASE WHEN profit <= 0 THEN 1 ELSE 0 END) AS diff_orders
+FROM sales_raw
+GROUP BY segment
+HAVING profitable_orders > loss_orders
+ORDER BY diff_orders DESC;
+
+#for count use sum(case when... 
+#for the difference, use all the expresion, not the alias
+#use having to know the more profitable orders than loss orders? (greater than)
+
 # 3. For each ship mode, calculate the average delivery time by year.
 #    Classify delivery performance as 'Fast' (avg < 3 days),
 #    'Normal' (3-5 days) or 'Slow' (> 5 days).
