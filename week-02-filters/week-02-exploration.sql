@@ -640,10 +640,38 @@ ORDER BY diff_orders DESC;
 #    Exclude ship modes where average delivery time is 0.
 #    Order by year and average delivery time ascending.
 
+select year(order_date) as years, ship_mode, avg(datediff(ship_date,order_date)) as avg_delivery_time ,
+case
+when avg(datediff(ship_date,order_date)) < 3 then 'Fast'
+when avg(datediff(ship_date,order_date)) between 3 and 5 then 'Normal'
+when avg(datediff(ship_date,order_date)) > 5 then 'Slow'
+end as performance
+from sales_raw
+where year(order_date) >= 2015
+group by years, ship_mode
+having avg_delivery_time > 0
+order by years asc, avg_delivery_time asc ; 
+
+#years goes as date function in where, not alias
+
 # 4. Show the total sales, total profit and number of orders by category
 #    for orders that had a discount applied (discount > 0) vs no discount (discount = 0).
 #    Show both groups in the same row per category using CASE WHEN.
 #    (Hint: use SUM with CASE WHEN like Q10 from the previous set)
+
+SELECT category,
+    -- Con descuento
+    SUM(CASE WHEN discount > 0 THEN sales ELSE 0 END) AS sales_with_discount,
+    SUM(CASE WHEN discount > 0 THEN profit ELSE 0 END) AS profit_with_discount,
+    SUM(CASE WHEN discount > 0 THEN 1 ELSE 0 END) AS orders_with_discount,
+    -- Sin descuento
+    SUM(CASE WHEN discount = 0 THEN sales ELSE 0 END) AS sales_no_discount,
+    SUM(CASE WHEN discount = 0 THEN profit ELSE 0 END) AS profit_no_discount,
+    SUM(CASE WHEN discount = 0 THEN 1 ELSE 0 END) AS orders_no_discount
+FROM sales_raw
+GROUP BY category
+ORDER BY category;
+#it requires the 3 metrics with and without discount, so there are in total 6 case when to show the difference (it says vs)
 
 # 5. Which states have a higher number of loss orders than profitable orders?
 #    Show state, region, profitable orders, loss orders and total orders.
