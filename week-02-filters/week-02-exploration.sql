@@ -576,14 +576,14 @@ order by sales desc
 #     Order by category.
 
 select category, region, 
-case 
-when profit > 0 then 'Profitable'
-when profit <= 0 then 'Loss'
-end as status_orders
+sum(case 
+when profit > 0 then 1 else 0 end) as profitable_orders,
+sum(case 
+when profit <= 0 then 1 else 0 end) as loss_orders
 from sales_raw
 group by category, region
 order by category;
-
+#To count the total of the columns created, use the Sum before the case, and in the when use 1 for true value and 0 for the false
 
 # --- INTERMEDIATE-ADVANCED ---
 
