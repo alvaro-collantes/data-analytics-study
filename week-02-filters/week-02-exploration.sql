@@ -481,13 +481,15 @@ order by segment desc, avg_sales desc;
 #    greater than 0.15? Show category, number of orders and average discount.
 #    Order by number of orders descending.
 
-select category, count(discount) as total_orders, avg(discount) as avg_discount
+select category, count(*) as total_orders, avg(discount) as avg_discount
 from sales_raw
 where discount > 0.15
 group by category
 having total_orders > 500
 order by total_orders desc
 ;
+#consider in the count(*) always as total orders 
+#discount is the filter in where, not the avg_discount
 
 # 5. What is the average delivery time in days by region and ship mode?
 #    Only include orders from 2017.
@@ -508,23 +510,80 @@ order by region asc, avg_delivery_time asc
 #    or 'Low' (sales < 100). Show the order_id, sales and the classification.
 #    Order by sales descending.
 
+select order_id, sales,
+case 
+when sales > 500 then 'High'
+when sales between 100 and 500 then 'Medium'
+when sales < 100 then 'Low'
+end as classification
+from sales_raw
+order by sales desc
+;
+#Use case in select to generate new coumn with the classification, do not use , after then
+
 # 7. For each category, show the total sales and classify the category as
 #    'Top Performer' if total sales exceed $800,000, 'Mid Performer' if between
 #    $400,000 and $800,000, or 'Low Performer' if below $400,000.
 
+select category, 
+case 
+when sum(sales) > 800000 then 'Top Performer'
+when sum(sales) between 400000 and 800000 then 'Mid Performer'
+when sum(sales) < 400000 then 'Low Performer'
+end as performance
+from sales_raw
+group by category
+;
+#use the case when with a agg function as condition
+
+
 # 8. Show each region with its total profit and classify it as 'Profitable'
 #    if total profit is positive or 'Loss' if negative.
 #    Order by total profit descending.
+
+select region, 
+case 
+when sum(profit)> 0 then 'Profitable'
+when sum(profit)<0 then 'Loss'
+end as classification
+from sales_raw
+group by region
+order by sum(profit) desc
+;
+#use agg funct in order by , and in the case when 
 
 # 9. For each order, calculate the profit margin (profit/sales) and classify it as
 #    'Excellent' (>30%), 'Good' (10-30%), 'Break Even' (0-10%) or 'Loss' (negative).
 #    Show order_id, sales, profit, profit margin and classification.
 #    Only show orders where sales are greater than $500.
 
+select order_id,sales,profit, profit/sales as 'profit margin',
+case 
+when profit/sales  > 0.3 then 'Excellent'
+when profit/sales  between 0.1 and 0.3 then 'Good'
+when profit/sales  between 0 and 0.1 then 'Break Even'
+when profit/sales  < 0 then 'Loss'
+end as classification
+from sales_raw
+where sales > 500
+order by sales desc
+;
+#use the arithmethic expression inside the when clause,why can not i call the name of the column of the arithemtic expression?
+
 # 10. Count how many orders are 'Profitable' (profit > 0) and how many are
 #     'Loss' (profit <= 0) per category and region.
 #     Show category, region, profitable_orders and loss_orders in the same row.
 #     Order by category.
+
+select category, region, 
+case 
+when profit > 0 then 'Profitable'
+when profit <= 0 then 'Loss'
+end as status_orders
+from sales_raw
+group by category, region
+order by category;
+
 
 # --- INTERMEDIATE-ADVANCED ---
 
