@@ -307,6 +307,132 @@ order by 1;
 # ORDER BY alias: dont use "" or '', use `` if the name has spaces 
 #You can define the alias with '' in select, but you can use it in other statement always with ``, otherwise it wont work
 
+#additional practice
+
+# 6. What is the total sales and total profit by category and year?
+#    Only include combinations where total sales exceed $50,000.
+#    Order by year ascending and total sales descending.
+
+select year(order_date) as Years, category, sum(sales) as 'Total Sales', sum(profit) as 'Total Profit'
+from sales_raw
+group by Years, category
+having `Total Sales` > 50000
+order by Years ASC, `Total Sales` Desc
+;
+#use having for agg func
+#you can order by 2 columns 
+#use the backstrings for the name with spaces
+
+# 7. Which regions have an average order value (sales) greater than $230?
+#    Show the region, average order value and total number of orders.
+
+select region, avg(sales) as 'Avg Sales', count(sales) as 'Total Orders'
+from sales_raw
+group by region 
+having `Avg Sales` > 230
+order by 1 asc;
+
+#same as before use of having and backstrings
+
+# 8. What is the total quantity sold and average discount by ship mode and segment?
+#    Only for orders placed in 2016 and 2017.
+#    Exclude combinations with an average discount of 0.
+
+select year(order_date) as Years, ship_mode, segment, sum(quantity) as 'Total Quantity', avg(discount) as 'Avg Discount'
+from sales_raw
+group by Years, ship_mode, segment
+having `Avg Discount` != 0 and Years IN('2016','2017')
+order by Years asc
+;
+#exclude combinations, so show everything that it is not 0, use != or <>
+#Years is an agg funct, so it has to be used inside HAVING, with and operator 
+
+# 9. How many orders were placed each month of 2017?
+#    Only include months with more than 550 orders.
+#    Order by month ascending.
+
+select month(order_date) as Months, count(order_date) as 'Total Orders'
+from sales_raw
+group by Months
+having `Total Orders` > 550
+order by Months Asc
+;
+#Month is agg func, use with having
+
+# 10. What is the total profit and number of orders by region and segment?
+#     Only include orders where sales are greater than $100.
+#     Exclude groups where total profit is negative.
+#     Order by total profit descending.
+
+select region, segment, sum(profit) as 'Total Profit', count(profit) as 'Total Orders'
+from sales_raw
+group by region, segment
+having `Total Profit` > 0
+order by `Total Orders` Desc
+;
+#same as before, practice
+
+# 11. Which sub-categories have an average sales per order greater than $200?
+#     Show sub-category, average sales and total number of orders.
+#     Only consider orders with no discount applied.
+
+select sub_category, avg(sales) as 'Avg Sales', count(sales) as 'Total Orders'
+from sales_raw
+where discount = 0
+group by sub_category
+having `Avg Sales` > 200
+order by `Avg Sales` desc
+;
+#careful with the name of the columns
+
+# 12. What is the total sales by customer segment for each year?
+#     Only include years where total sales across all segments exceed $100,000.
+#     Order by year and total sales descending.
+
+select year(order_date) as Years ,segment, sum(sales) as 'Total Sales'
+from sales_raw
+group by Years, segment
+having `Total Sales` > 100000
+order by Years Desc, `Total Sales` desc
+;
+
+# 13. Which cities have more than 20 unique customers?
+#     Show city, state, region and number of unique customers.
+#     Order by unique customers descending.
+
+select city,state,region, count(distinct(customer_id)) as 'Unique Customer'
+from sales_raw
+group by city, state, region
+having `Unique Customer` > 20
+order by `Unique Customer` desc
+;
+
+# 14. What is the average profit per order by category and ship mode?
+#     Only include ship modes where the average profit is greater than $20.
+#     Exclude orders with a discount greater than 0.3.
+
+select category, ship_mode, avg(profit) as 'Avg Profit'
+from sales_raw
+where discount < 0.3
+group by category, ship_mode
+having `Avg Profit` > 20
+order by `Avg Profit` Desc
+;
+
+# 15. How many orders contain more than one product (more than one row
+#     with the same order_id)? Show order_id, customer_name, region
+#     and number of products per order.
+#     Only include orders with more than 3 products.
+#     Order by number of products descending.
+
+select order_id, customer_name, region, count(distinct(product_id)) as 'Products per Order' 
+from sales_raw
+group by order_id, customer_name,region 
+having `Products per Order` > 3
+order by `Products per Order` Desc
+;
+
+
 # --- INTERMEDIATE-ADVANCED ---
 
 # 6. For each category, what percentage of total company sales does it represent?
