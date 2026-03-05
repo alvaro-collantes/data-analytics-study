@@ -456,13 +456,14 @@ order by total_sales desc
 #    Only show combinations with more than 100 unique products.
 #    Order by category ascending.
 
-select year(order_date) as Years ,category, region, count(distinct(product_id)) as total_products 
+select category, region, count(distinct(product_id)) as total_products 
 from sales_raw
 where year(order_date) in ('2015','2016')
-group by Years,category, region
+group by category, region
 having total_products > 100
 order by category asc;
 #use years as filter in when(not alias, just the sintax) and use it for grouping 
+#dont use years in select or group by, it was not requested, the question just need category and region
 
 # 3. What is the total quantity sold and average sales by segment and ship mode?
 #    Only include orders where profit is greater than 0.
@@ -482,8 +483,9 @@ order by segment desc, avg_sales desc;
 
 select category, count(discount) as total_orders, avg(discount) as avg_discount
 from sales_raw
+where discount > 0.15
 group by category
-having total_orders > 500 and avg_discount > 0.15
+having total_orders > 500
 order by total_orders desc
 ;
 
