@@ -340,24 +340,26 @@ order by 1 asc;
 
 select year(order_date) as Years, ship_mode, segment, sum(quantity) as 'Total Quantity', avg(discount) as 'Avg Discount'
 from sales_raw
+Where year(order_date) IN('2016','2017')
 group by Years, ship_mode, segment
-having `Avg Discount` != 0 and Years IN('2016','2017')
+having `Avg Discount` != 0 
 order by Years asc
 ;
 #exclude combinations, so show everything that it is not 0, use != or <>
-#Years is an agg funct, so it has to be used inside HAVING, with and operator 
+#Years is an date funct, so it has to be used inside where NOT WITH THE ALIAS (where doesnt allow it, it must be with the date funct)
 
 # 9. How many orders were placed each month of 2017?
-#    Only include months with more than 550 orders.
+#    Only include months with more than 250 orders.
 #    Order by month ascending.
 
 select month(order_date) as Months, count(order_date) as 'Total Orders'
 from sales_raw
+where year(order_date) = 2017
 group by Months
-having `Total Orders` > 550
+having `Total Orders` > 250
 order by Months Asc
 ;
-#Month is agg func, use with having
+#Month is date func, use with where, and add where
 
 # 10. What is the total profit and number of orders by region and segment?
 #     Only include orders where sales are greater than $100.
@@ -366,11 +368,12 @@ order by Months Asc
 
 select region, segment, sum(profit) as 'Total Profit', count(profit) as 'Total Orders'
 from sales_raw
+where sales > 100
 group by region, segment
 having `Total Profit` > 0
 order by `Total Orders` Desc
 ;
-#same as before, practice
+#same as before, practice, add where filter of sales 
 
 # 11. Which sub-categories have an average sales per order greater than $200?
 #     Show sub-category, average sales and total number of orders.
@@ -413,11 +416,12 @@ order by `Unique Customer` desc
 
 select category, ship_mode, avg(profit) as 'Avg Profit'
 from sales_raw
-where discount < 0.3
+where discount <= 0.3
 group by category, ship_mode
 having `Avg Profit` > 20
 order by `Avg Profit` Desc
 ;
+#include the 0.3
 
 # 15. How many orders contain more than one product (more than one row
 #     with the same order_id)? Show order_id, customer_name, region
