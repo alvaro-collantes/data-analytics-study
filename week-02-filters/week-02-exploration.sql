@@ -245,50 +245,67 @@ select segment,region, avg(discount) as 'Discount (Avg)',sum(profit) as 'Total P
 from sales_raw
 where ship_mode = 'Second Class'
 group by segment, region
-order by 'Total Profit' Desc;
+order by `Total Profit` Desc;
 #You can put in the select ex columns 1,2,3,aggfunction col4, and in the where, you can put the condition on column 8. It will work
 #Aggregate Functions were in select, and in group, it is the other columns of the select
 
 # 2. How many unique customers placed orders in each region per year?
 #    Only include years with more than 100 unique customers.
 
-select year(order_date) as Years ,region as Region, count(distinct customer_id) as 'Unique Customers'
+select year(order_date) as Years ,region, count(distinct customer_id) as Unique_Customers
 from sales_raw
-where 'Unique Customers' > 100
 group by Years, region
+Having Unique_Customers > 100
 order by Years Asc ;
 #Why when i filter unique customers >100, i have an empty table and without it, i have a table with the count of the unique customers (all >100)
+#Fixed: moved filter from WHERE to HAVING — aggregate functions need HAVING
+# Dont use where to filter on aggregate functions, use having always 
 
 # 3. What is the total sales and total quantity sold by category,
 #    only for orders where the discount is greater than 0?
 #    Include the average sales per order.
 
-select category , order_id,sum(sales) as 'Total Sales', sum(quantity) as 'Total Quantity', avg(sales) as 'Avg Sales Per Order'
+select category ,sum(sales) as 'Total Sales', sum(quantity) as 'Total Quantity', avg(sales) as 'Avg Sales Per Order'
 from sales_raw
 where discount > 0
-group by category, order_id
+group by category
 order by category
 ;
+#I just need categories, not row id
 
 # 4. Which ship modes have an average delivery time greater than 4 days?
 #    Show the ship mode and the average days to ship.
 
-select ship_mode, avg(ship_date - order_date) as 'Avg Delivery Time'
+select ship_mode, avg(DATEDIFF(ship_date, order_date)) as Avg_Delivery_Time
 from sales_raw
-where 'Avg Delivery Time' > 4
-group by ship_mode;
+group by ship_mode
+having Avg_Delivery_Time >4
+order by 1;
+
 #Why when i filter Avg Delivery Time >4, i have an empty table and without it, i have a table with the count of the Avg Delivery Time (all >4)
+#Fixed: moved filter from WHERE to HAVING — aggregate functions need HAVING
+#use dateiff and the columns to get the difference betweem two dates, always put the end date,start date 
+
 
 # 5. What is the total profit by sub-category, only for the West and East regions?
 #    Exclude sub-categories with a total loss (negative profit).
 
 select sub_category,region, sum(profit) as Total_Profit
 from sales_raw
-where region IN('West','East') and Total_Profit > 0
+where region IN('West','East')
 group by sub_category,region
+HAVING Total_Profit > 0
 order by 1;
 #Is not say to have the region as a column, but for better presentation, is better to include it 
+#Use having as other condition(has the agg funct)
 #Why is not working the condition on the total profit col? 
+
+#Rules
+# WHERE: filter before group by, dont use alias or aggregate functions
+# HAVING: filter groups after group by, it does accept alias or aggregate functions
+# DATEDIFF: difference between 2 dates (end, start)
+# ORDER BY alias: dont use "" or '', use `` if the name has spaces 
+#You can define the alias with '' in select, but you can use it in other statement always with ``, otherwise it wont work
 
 # --- INTERMEDIATE-ADVANCED ---
 
