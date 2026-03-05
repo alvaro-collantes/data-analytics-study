@@ -569,6 +569,8 @@ where sales > 500
 order by sales desc
 ;
 #use the arithmethic expression inside the when clause,why can not i call the name of the column of the arithemtic expression?
+#also, because here i want to see the whole table, not the segmented in groups, i didnt need to put an agg function to the calculation of the ratio, otherwise if
+#i want to see the group version, i need to add the agg funct : Sum for the ratio
 
 # 10. Count how many orders are 'Profitable' (profit > 0) and how many are
 #     'Loss' (profit <= 0) per category and region.
@@ -584,6 +586,99 @@ from sales_raw
 group by category, region
 order by category;
 #To count the total of the columns created, use the Sum before the case, and in the when use 1 for true value and 0 for the false
+
+# Mix of WHERE, GROUP BY, HAVING, CASE WHEN, DATEDIFF
+# Higher complexity: multiple conditions and logic combined
+
+# 1. For each region and year, calculate the total sales, total profit
+#    and profit margin percentage (profit/sales*100).
+#    Classify the year as 'Growth' if profit margin > 15%,
+#    'Stable' if between 5% and 15%, or 'Critical' if below 5%.
+#    Only include years where total sales exceed $100,000.
+#    Order by region and year ascending.
+
+select year(order_date) as years, region, sum(sales) as total_sales, sum(profit) as total_profit, (sum(profit)/sum(sales)) * 100 as profit_margin,
+case 
+when (sum(profit)/sum(sales)) * 100 > 15 then 'Growth'
+when (sum(profit)/sum(sales)) * 100 between 5 and 15 then 'Stable'
+when (sum(profit)/sum(sales)) * 100 < 5 then 'Critical'
+end as classification
+from sales_raw
+group by region, years
+having total_sales > 100000
+order by region asc , years asc 
+;
+#i am using group by, that is why i need to add the sum, because without it and using group by, it wont work at least i removed
+#the group by, but i will have a table instead of the groups
+#Important: inside group by never use an agg function
+			#to use the group by, you use the agg functions inside the select, otherwise there is no sense to use it
+            #understand the diff between showing each order (all the lines) so i dont need an agg function in the calculation , so i dont need group by
+            #and each region(column) , here i need the agg function, so the group by
+
+# 2. Which segments have more profitable orders than loss orders?
+#    Show segment, number of profitable orders, number of loss orders
+#    and the difference between them.
+#    Order by difference descending.
+
+# 3. For each ship mode, calculate the average delivery time by year.
+#    Classify delivery performance as 'Fast' (avg < 3 days),
+#    'Normal' (3-5 days) or 'Slow' (> 5 days).
+#    Only include years from 2015 onwards.
+#    Exclude ship modes where average delivery time is 0.
+#    Order by year and average delivery time ascending.
+
+# 4. Show the total sales, total profit and number of orders by category
+#    for orders that had a discount applied (discount > 0) vs no discount (discount = 0).
+#    Show both groups in the same row per category using CASE WHEN.
+#    (Hint: use SUM with CASE WHEN like Q10 from the previous set)
+
+# 5. Which states have a higher number of loss orders than profitable orders?
+#    Show state, region, profitable orders, loss orders and total orders.
+#    Only include states with more than 50 total orders.
+#    Order by loss orders descending.
+
+# 6. For each category and segment, calculate:
+#    - Total sales
+#    - Average discount
+#    - Total profit
+#    - Profit margin % (profit/sales*100)
+#    Only include combinations where:
+#    - Total sales exceed $50,000
+#    - Average discount is less than 0.3
+#    - Profit margin is greater than 5%
+#    Order by profit margin descending.
+
+# 7. Calculate the average number of days between order and ship date
+#    by region and segment.
+#    Classify as 'Express' (< 2 days), 'Standard' (2-4 days) or 'Delayed' (> 4 days).
+#    Only include orders from 2016 and 2017 where profit > 0.
+#    Exclude combinations where average delivery time is 0.
+#    Order by region and average delivery time ascending.
+
+# 8. For each year and region, show:
+#    - Total orders
+#    - Orders with discount (discount > 0)
+#    - Orders without discount (discount = 0)
+#    - Percentage of orders with discount (discounted/total*100)
+#    Only include combinations where percentage of discounted orders exceeds 40%.
+#    Order by year and percentage descending.
+
+# 9. Which sub-categories had their best sales year in 2017?
+#    Show sub-category, total sales in 2016, total sales in 2017
+#    and the growth percentage ((2017-2016)/2016*100).
+#    Only include sub-categories where 2017 sales are higher than 2016.
+#    Order by growth percentage descending.
+#    (Hint: you will need CASE WHEN inside SUM for each year)
+
+# 10. For each region, classify each order by delivery speed:
+#     'Same Day' (0 days), 'Express' (1-2 days),
+#     'Standard' (3-5 days), 'Slow' (> 5 days).
+#     Show region, count of orders per delivery classification,
+#     total sales per classification and average profit per classification.
+#     Only include orders from 2017 where sales > 100.
+#     Order by region and total sales descending.
+
+
 
 # --- INTERMEDIATE-ADVANCED ---
 
