@@ -491,3 +491,101 @@ HAVING avg_limit > 100000;`
 #On left table? the filter with where referencing to the left table. It keeps all the rows of the left table
 #On right table? the filter goes in the ON , using And condition, otherwise it will remove all the rows of the left table, and breaks the 
 #left join, and acts as a Join
+
+#LEFT JOIN vs INNER JOIN
+#Keep ALL rows from left table (even no match)? UseLEFT JOIN
+#Keywords: "all clients", "include clients with no..."
+#Only matching rows in both tables? Use INNER JOIN
+#Keywords: "only clients who have...", "find clients with..."
+
+#LEFT JOIN + Filter rule
+#Filter on LEFT table?. WHERE is safe 
+#Filter on RIGHT table?. Move to ON with AND 
+#Filter on RIGHT table with WHERE?. Breaks LEFT JOIN 
+#(acts as INNER JOIN, NULLs are eliminated)
+
+#One rule to remember: WHERE kills NULLs. ON keeps them.
+
+#Window Functions
+#Regular aggregate functions (SUM, COUNT) collapse rows into one result per group. Window functions keep all rows but add a calculation alongside each row.
+#FUNCTION() OVER (
+    #PARTITION BY column    -- "group by" for window functions
+    #ORDER BY column        -- order within each partition
+#)
+#Make calculations in the same group, without transforming the table in one single category, gives each line of the same group a calculation adding the previous 
+#it is like a acumulated group by
+USE sql_practice;
+select * from claims;
+-- GROUP BY collapses rows
+SELECT client_id, SUM(claim_amount)
+FROM claims
+GROUP BY client_id;
+-- Result: 2 rows (one per client)
+
+-- Window function keeps all rows
+SELECT client_id, claim_amount,
+SUM(claim_amount) OVER (PARTITION BY client_id) AS total_per_client
+FROM claims;
+-- Result: 3 rows (all claims, with total alongside)
+
+#Uses
+#partition makes a reset to each new category line
+#Example 1 — ROW_NUMBER
+#Assigns a unique number to each row within a partition:
+-- Number each claim per client, ordered by date
+SELECT cli.client_name, cla.claim_id, cla.claim_date, cla.claim_amount,
+ROW_NUMBER() OVER (PARTITION BY cli.client_name ORDER BY cla.claim_date) AS claim_number
+FROM claims cla
+JOIN clients cli ON cla.client_id = cli.client_id;
+
+#Example 2 — RANK
+#Like ROW_NUMBER but ties get the same rank:
+-- Rank clients by their credit limit
+SELECT cli.client_name, cre.credit_limit,
+RANK() OVER (ORDER BY cre.credit_limit DESC) AS credit_rank
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id;
+
+#DENSE_RANK — ties share a rank, next rank doesn't skip (1,2,2,3)
+SELECT cli.client_name, cre.credit_limit,
+DENSE_RANK() OVER (ORDER BY cre.credit_limit DESC) AS credit_rank
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id;
+
+#Example 3 — SUM OVER (Running Total)
+#Adds up values progressively row by row:
+-- Running total of claims ordered by date (Cumulative sum)
+SELECT cli.client_name, cla.claim_date, cla.claim_amount,
+SUM(cla.claim_amount) OVER (ORDER BY cla.claim_date) AS running_total
+FROM claims cla
+JOIN clients cli ON cla.client_id = cli.client_id;
+
+#Example 4 — SUM OVER with PARTITION BY
+#Running total reset per client:
+
+SELECT cli.client_name, cla.claim_date, cla.claim_amount,
+SUM(cla.claim_amount) OVER (
+    PARTITION BY cli.client_name
+    ORDER BY cla.claim_date
+) AS running_total_per_client
+FROM claims cla
+JOIN clients cli ON cla.client_id = cli.client_id;
+
+#Exercises
+#Exercise 1 — ROW_NUMBER
+#Number each claim per country, ordered by claim_amount descending. Show client_name, country, claim_amount and the row number.
+select * from clients;
+select cli.client_name, cli.country,  claim_amount ,
+row_number() over(partition by cli.client_name order by cla.claim_amount) as claim_number
+from clients cli
+left join claims cla
+on cli.client_id = cla.client_id
+;
+#Exercise 2 — RANK
+#Rank all clients by their total claim amount (highest first). Show client_name, total claim amount and their rank. Clients with no claims should not appear.
+
+#Exercise 3 — Running Total
+#Show a running total of claim amounts ordered by claim_date. Show claim_id, claim_date, claim_amount and the running total.
+
+#Exercise 4 — PARTITION BY
+#For each claim, show the client_name, claim_amount, and the total claim amount for that client alongside each row (not a running total — the full total for that client on every row).
