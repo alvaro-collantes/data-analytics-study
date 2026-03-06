@@ -14,7 +14,6 @@ INSERT INTO clients VALUES
 (2, 'Fiat', 'Italy', 'Medium'),
 (3, 'Siemens', 'Germany', 'Large');
 
-
 #Credit Assessments table
 CREATE TABLE credit_assessments (
     assessment_id   INT PRIMARY KEY,
@@ -30,7 +29,6 @@ INSERT INTO credit_assessments VALUES
 (102, 2, '2024-02-10', 150000, 'Rejected'),
 (103, 3, '2024-02-20', 800000, 'Approved');
 
-
 #Claims table
 CREATE TABLE claims (
     claim_id     INT PRIMARY KEY,
@@ -45,3 +43,14 @@ INSERT INTO claims VALUES
 (201, 1, '2024-03-01', 20000, 'Paid'),
 (202, 1, '2024-04-15', 35000, 'Pending'),
 (203, 3, '2024-03-22', 60000, 'Paid');
+
+#Explore data
+#clients
+select *
+from clients;
+#credit_assessments
+select *
+from credit_assessments;
+#claims
+select *
+from credit_assessments;
