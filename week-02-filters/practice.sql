@@ -206,8 +206,9 @@ join claims cla
 on cli.client_id = cla.client_id
 where cla.claim_status = 'Paid'
 group by client_name
-having total_claim_amount;
+having total_claim_amount > 10000;
 #Because it says Only show clients whose total is greater than 10000, i have to use just Join instead of left join?
+#It is missing the > 10000
 
 #Exercise B
 #Count how many assessments each country has. Exclude assessments with status 'Rejected' and only show countries with more than 0 assessments. 
@@ -222,6 +223,16 @@ on cli.client_id = cre.client_id
 where cre.status = 'Approved'
 group by country
 having total_assessments > 0 ;
+
+#With where, removes the left join, so it is better just a join
+#remember: "It says show ALL clients" → LEFT JOIN. "Only clients with values" → INNER JOIN.
+#Fix version
+SELECT cli.country, COUNT(*) AS total_assessments
+FROM clients cli
+JOIN credit_assessments cre ON cli.client_id = cre.client_id
+WHERE cre.status = 'Approved'
+GROUP BY cli.country
+HAVING total_assessments > 0;
 
 # CASE WHEN combined
 #Exercise A
@@ -245,6 +256,7 @@ on cli.client_id = cre.client_id
 group by cli.client_name, cre.credit_limit;
 
 #there is one client (peugeot) that doesnt have info in the credit assessment table. It is better doesnt add it. So use Join
+#dont use group by, there is no agg funct
 
 #Exercise B
 #For each claim, show the claim_id, claim_amount, claim_status, and a column called action that says:
@@ -292,3 +304,178 @@ JOIN credit_assessments cre ON cre.client_id = cli.client_id
 WHERE cre.status = 'Approved'
 GROUP BY cli.country
 HAVING total_assessments > 0;
+#second bug, is the alias in having, it has to be the expression
+#group by goes when there are AGG FUNC in the select, if there are no agg func or if there is a case when, it is not necessary
+
+#Practice 2
+
+#Exercise 1
+#Show each country with the total number of claims made by clients from that country. Only show countries with more than 1 claim total.
+select * from clients;
+select * from claims;
+
+select cli.country, count(cla.claim_id) as total_claims
+from clients cli
+join claims cla
+on cli.client_id = cla.client_id
+group by cli.country
+having count(cla.claim_id) > 1;
+
+#Justification
+#Columns to show: country and total number of claims (agg funct)
+#Tables:clients and claims (relation by client_id)
+#Conditions to show: countries with more than 1 claim total (more than x = greater than x = > x), condition on agg function, use having
+
+#Exercise 2
+#For each segment, show the average credit limit. Only include approved assessments. Round the result to 2 decimals. (Hint: MySQL uses ROUND(value, 2))
+select * from clients;
+select* from credit_assessments;
+
+select cli.segment, round(avg(credit_limit),2) as avg_credit_limit
+from clients cli
+left join credit_assessments cre
+on cli.client_id = cre.client_id
+where cre.status = 'Approved'
+group by cli.segment;
+
+#Justification
+#columns:segment, avg credit limit (agg func)
+#tables: clients, credit_assessments (relation by client_id)
+#Conditions to show: for each segment(need all, so left join), only approved (filter on status) and round(val,2)
+
+#Exercise 3
+#Show all clients with the total amount of their PAID claims only. If a client has no paid claims, show 0. Order the results from highest to lowest. (Hint: WHERE will break your LEFT JOIN — think about where to filter)
+
+select * from claims;
+
+select cli.client_name, sum(cla.claim_amount) as total_claim_amount
+from clients cli
+join claims cla
+on cli.client_id = cla.client_id
+where cla.claim_status = 'Paid'
+group by cli.client_name
+order by sum(cla.claim_amount) desc;
+
+#Justification
+#Columns:client_name, total clame_amount (sum, agg funct)
+#Tables: clients, claims (client_id)
+#Conditions: all clients (left join) , on paid (filter on claim_status), if has no paid, show 0 (coalesce) and order
+#says all and filter on one column, making this will break the left join, so use join and filter
+
+#Exercise 4
+#List all clients with the number of assessments they have. Include clients with no assessments and show 0 for them. Only show clients from France or Germany.
+
+select * from credit_assessments;
+select * from clients;
+
+select cli.client_name, coalesce(count(cre.client_id),0) as total_assessments
+from clients cli
+left join credit_assessments cre
+on cli.client_id = cre.client_id
+where cli.country IN('Germany','France')
+group by cli.client_name
+;
+#justification
+#columns:client_name, count(client_id) (agg funct)
+#tables:clients, credit_assessments
+#conditions: all clients(left join) , show with no assessments and put 0 show from france or germany
+
+#Exercise 5
+#Find the total claim amount per country, but only for claims that are 'Paid'. Only show countries where the total is above 20000.
+select* from claims;
+
+select cli.country, sum(cla.claim_amount) as total_claim_amount
+from clients cli
+join claims cla
+on cli.client_id = cla.client_id
+where cla.claim_status = 'Paid'
+group by cli.country
+having sum(cla.claim_amount) > 20000;
+
+#justification
+#columns: country, total claim amount(agg)
+#tables:clients, claims
+#cond: status(filter paid), total claim amount > 20000, join
+
+#Exercise 6
+#Count the number of claims per client. Exclude 'Pending' claims. Only show clients who have more than 0 paid claims. Show the result ordered by count descending.
+
+select * from claims;
+
+select cli.client_name, count(cla.client_id) as total_number_claims
+from clients cli
+join claims cla
+on cli.client_id = cla.client_id
+where cla.claim_status != 'Pending'
+group by cli.client_name
+having count(cla.client_id) > 0
+order by count(cla.client_id) desc; 
+
+#justificacion
+#columns: client_name, total number of claims
+#table: clients, claims
+#conditions: status (excluding pending), only show(join) > 0paid claims, order by count desc
+
+#Exercise 7
+#Show all assessments with client name, credit limit, status, and a column called review_needed that says:
+#'Yes' if status is 'Rejected'
+#'No' for anything else
+
+select cli.client_name, cre.credit_limit, cre.status,
+case
+when cre.status = 'Rejected' then 'Yes' else 'No' end as review_needed
+from credit_assessments cre
+left join clients cli
+on cli.client_id = cre.client_id
+;
+
+#justification
+#columns: client name, credit limit, status, review_needed
+#table: client, credit_assessments
+#cond: the case statements, all assessments so left 
+
+#Exercise 8
+#Show each client name, their total claim amount, and a column called client_health that says:
+#'Critical' if total claims > 50000
+#'Watch' if total claims is between 20000 and 50000
+#'Good' if total claims < 20000
+#'No Claims' if the client has no claims at all
+
+select cli.client_name, sum(cla.claim_amount) as total_claim_amount, 
+case 
+when sum(cla.claim_amount) > 50000 then 'Critical'
+when sum(cla.claim_amount)  between 20000 and 50000 then 'Watch'
+when sum(cla.claim_amount)  < 20000 then 'Good' else 'No Claims'
+end as client_health
+from clients cli
+left join claims cla
+on cli.client_id = cla.client_id
+group by cli.client_name;
+
+#justification
+#col:client name, total claim amount, client health with case when cond
+#tab: client, claims
+#Cond: case when, each client, left join
+
+#Exercise 9 — Fix the bug
+#This query works in MySQL but would fail in Snowflake. Find why and fix it:
+`SELECT cli.client_name, SUM(cla.claim_amount) AS total_claims
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+GROUP BY cli.client_name
+HAVING total_claims > 30000;`
+
+#because in the having is the alias, it must be the expression
+
+#Exercise 10 — Fix the 2 bugs
+#This query has 2 bugs. Find and fix both:
+
+`SELECT cli.client_name, AVG(cre.credit_limit) AS avg_limit
+FROM clients cli
+LEFT JOIN credit_assessments cre ON cli.client_id = cre.client_id
+WHERE cre.status = 'Approved'
+GROUP BY cli.client_name
+HAVING avg_limit > 100000;`
+
+# you cant use the left join and the where because it wont return the correct values by the filter
+# in the having is the alias instead the expression
