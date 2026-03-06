@@ -44,6 +44,10 @@ INSERT INTO claims VALUES
 (202, 2, '2024-04-15', 35000, 'Pending'),
 (203, 3, '2024-03-22', 60000, 'Paid');
 
+#Additional
+#New client with no assessment
+INSERT INTO clients VALUES (4, 'Peugeot', 'France', 'Small');
+
 #Explore data
 #clients
 select *
@@ -64,11 +68,21 @@ join clients cli
 	on cla.client_id = cli.client_id
 where cla.client_id >= 1
 group by client_name; 
-    
+
 #Join: merge both tables, all columns in the same table where they match
 #indicate each table with a prefix
 #where: goes after join
 #If you use an agg function, you need to group by
+
+#Better solution 
+SELECT cli.client_name, SUM(cla.claim_amount) AS total_claim_amount
+FROM claims cla
+JOIN clients cli ON cla.client_id = cli.client_id
+GROUP BY cli.client_name;
+#improvements:
+#name the prefix of each table for each column
+#when you make the join, it is not necessary the where 
+    
 
 #Exercise 2 — LEFT JOIN + COALESCE
 #List all clients with their total credit limit. If a client has no credit assessment, show 0 instead of NULL.
@@ -79,6 +93,26 @@ left join credit_assessments cre
 on cli.client_id = cre.client_id
 where status != 'Rejected'
 group by client_name;
+
+#Better solution
+
+#use of coalsece, verification
+SELECT cli.client_name,
+       SUM(cre.credit_limit) AS total_credit_limit
+FROM clients cli
+LEFT JOIN credit_assessments cre ON cli.client_id = cre.client_id
+GROUP BY cli.client_name;
+
+#see the change
+SELECT cli.client_name,
+       COALESCE(SUM(cre.credit_limit), 0) AS total_credit_limit
+FROM clients cli
+LEFT JOIN credit_assessments cre ON cli.client_id = cre.client_id
+GROUP BY cli.client_name;
+
+#Improvements: 
+#where filter after the join, and eliminates the effect of the left join 
+#use of coalesce for replace a null value 
 
 
 #Exercise 3 — CASE WHEN
@@ -101,3 +135,13 @@ join clients cli
 on cre.client_id = cli.client_id
 group by country
 having approved_assessments >=1 ;
+
+#better solution 
+SELECT cli.country, COUNT(cre.assessment_id) AS approved_assessments
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id
+WHERE cre.status = 'Approved'
+GROUP BY cli.country
+HAVING approved_assessments >= 1;
+
+#use where for the count of the assessment_id, more simple than use of when
