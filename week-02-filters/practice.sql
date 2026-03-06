@@ -54,3 +54,15 @@ from credit_assessments;
 #claims
 select *
 from credit_assessments;
+
+# Exercise 1 — Basic aggregation
+#Find the total claim amount per client name. Only show clients who have at least one claim.
+
+#Exercise 2 — LEFT JOIN + COALESCE
+#List all clients with their total credit limit. If a client has no credit assessment, show 0 instead of NULL.
+
+#Exercise 3 — CASE WHEN
+#For each claim, add a column called urgency that says 'High' if claim_amount > 30000, and 'Normal' otherwise.
+
+#Exercise 4 — WHERE vs HAVING
+#Count the number of Approved assessments per country. Only show countries where that count is at least 1.
