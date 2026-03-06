@@ -333,7 +333,7 @@ select* from credit_assessments;
 
 select cli.segment, round(avg(credit_limit),2) as avg_credit_limit
 from clients cli
-left join credit_assessments cre
+join credit_assessments cre
 on cli.client_id = cre.client_id
 where cre.status = 'Approved'
 group by cli.segment;
@@ -341,14 +341,14 @@ group by cli.segment;
 #Justification
 #columns:segment, avg credit limit (agg func)
 #tables: clients, credit_assessments (relation by client_id)
-#Conditions to show: for each segment(need all, so left join), only approved (filter on status) and round(val,2)
+#Conditions to show: for each segment(need all, so left join), only approved (filter on status) and round(val,2). Where breaks the left join
 
 #Exercise 3
 #Show all clients with the total amount of their PAID claims only. If a client has no paid claims, show 0. Order the results from highest to lowest. (Hint: WHERE will break your LEFT JOIN — think about where to filter)
 
 select * from claims;
 
-select cli.client_name, sum(cla.claim_amount) as total_claim_amount
+select cli.client_name, coalesce(sum(cla.claim_amount),0) as total_claim_amount
 from clients cli
 join claims cla
 on cli.client_id = cla.client_id
@@ -360,7 +360,7 @@ order by sum(cla.claim_amount) desc;
 #Columns:client_name, total clame_amount (sum, agg funct)
 #Tables: clients, claims (client_id)
 #Conditions: all clients (left join) , on paid (filter on claim_status), if has no paid, show 0 (coalesce) and order
-#says all and filter on one column, making this will break the left join, so use join and filter
+#says all and filter on one column, making this will break the left join, so use join and filter, it was missing the coalesce
 
 #Exercise 4
 #List all clients with the number of assessments they have. Include clients with no assessments and show 0 for them. Only show clients from France or Germany.
@@ -425,14 +425,14 @@ select cli.client_name, cre.credit_limit, cre.status,
 case
 when cre.status = 'Rejected' then 'Yes' else 'No' end as review_needed
 from credit_assessments cre
-left join clients cli
+join clients cli
 on cli.client_id = cre.client_id
 ;
 
 #justification
 #columns: client name, credit limit, status, review_needed
 #table: client, credit_assessments
-#cond: the case statements, all assessments so left 
+#cond: the case statements, all assessments so left , it is ok just join
 
 #Exercise 8
 #Show each client name, their total claim amount, and a column called client_health that says:
@@ -479,3 +479,15 @@ HAVING avg_limit > 100000;`
 
 # you cant use the left join and the where because it wont return the correct values by the filter
 # in the having is the alias instead the expression
+
+#LEFT JOIN VS JOIN Which one do i have to use?
+#Do I want to keep rows from the left table even if there's NO match in the right table?
+#Yes, keep ALL rows from left table, use LEFT JOIN (it says expressions as all clients or include clients with no...)
+#No, only rows that match in both tables, use INNER JOIN (it says expressions as only clients who have or find clients with)
+
+#Common mistake LEFT JOIN + WHERE
+#Do I want to keep rows from the left table even if there's NO match in the right table?
+#Yes, use the left Join and the where goes the filter? 
+#On left table? the filter with where referencing to the left table. It keeps all the rows of the left table
+#On right table? the filter goes in the ON , using And condition, otherwise it will remove all the rows of the left table, and breaks the 
+#left join, and acts as a Join
