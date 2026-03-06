@@ -145,3 +145,150 @@ GROUP BY cli.country
 HAVING approved_assessments >= 1;
 
 #use where for the count of the assessment_id, more simple than use of when
+
+#Practice
+
+#LEFT JOIN + COALESCE
+#Exercise A
+#List all clients with the total number of claims they have made. If a client has no claims, show 0 instead of NULL.
+#clients
+select* 
+from clients;
+#claims
+select* 
+from claims;
+#query (count)
+select cli.client_name, count(cla.client_id) as total_claims
+from clients cli
+left join claims cla
+on cli.client_id = cla.client_id
+group by cli.client_name;
+
+#query (coalesce)
+select cli.client_name, coalesce(count(cla.client_id),0) as total_claims
+from clients cli
+left join claims cla
+on cli.client_id = cla.client_id
+group by cli.client_name;
+
+#same result, is it necessary the coalesce in this case?
+
+#Exercise B
+#Show all clients with their highest claim amount (MAX). If a client has no claims, show 0.
+#left join + coalesce
+select cli.client_name, coalesce(max(cla.claim_amount),0) as total_claim_amount
+from clients cli
+left join claims cla
+on cli.client_id = cla.client_id
+group by cli.client_name;
+#shows all clients
+
+#join 
+select cli.client_name,max(cla.claim_amount) as total_claim_amount
+from clients cli
+join claims cla
+on cli.client_id = cla.client_id
+group by cli.client_name;
+#shows just the clients with values 
+
+#Why is necessary the left join, when use it and when use join? 
+#It is because it says: Show all clients with their highest claim amount (MAX)
+
+#WHERE vs HAVING
+#Exercise A
+#Find the total claim_amount per client, but only counting claims with status 'Paid'. Only show clients whose total is greater than 10000.
+select * from clients;
+select * from claims;
+
+select client_name, sum(cla.claim_amount) as total_claim_amount
+from clients cli
+join claims cla
+on cli.client_id = cla.client_id
+where cla.claim_status = 'Paid'
+group by client_name
+having total_claim_amount;
+#Because it says Only show clients whose total is greater than 10000, i have to use just Join instead of left join?
+
+#Exercise B
+#Count how many assessments each country has. Exclude assessments with status 'Rejected' and only show countries with more than 0 assessments. 
+select * from clients;
+select * from credit_assessments;
+
+#query
+select country, count(*) as total_assessments
+from clients cli 
+left join credit_assessments cre
+on cli.client_id = cre.client_id
+where cre.status = 'Approved'
+group by country
+having total_assessments > 0 ;
+
+# CASE WHEN combined
+#Exercise A
+#For each client, show their name, their credit_limit, and a column called risk_level that says:
+#'High Risk' if credit_limit < 200000
+#'Medium Risk' if credit_limit is between 200000 and 600000
+#'Low Risk' if credit_limit > 600000
+
+select * from clients;
+select * from credit_assessments;
+
+select cli.client_name, cre.credit_limit,
+case 
+when cre.credit_limit < 200000 then 'High Risk'
+when cre.credit_limit between 200000 and 600000 then 'Medium Risk'
+when cre.credit_limit > 600000 then 'Low Risk'
+end as risk_level
+from clients cli
+ join credit_assessments cre
+on cli.client_id = cre.client_id
+group by cli.client_name, cre.credit_limit;
+
+#there is one client (peugeot) that doesnt have info in the credit assessment table. It is better doesnt add it. So use Join
+
+#Exercise B
+#For each claim, show the claim_id, claim_amount, claim_status, and a column called action that says:
+#'Follow Up' if status is 'Pending'
+#'Closed' if status is 'Paid'
+#'Review' for any other case
+
+select* from claims;
+
+select claim_id, claim_amount,claim_status,
+case
+when claim_status = 'Pending' then 'Follow Up' 
+when claim_status = 'Paid' then 'Closed' else 'Review' end as action
+from claims;
+
+#Exercise A — This query has 1 bug, find and fix it:
+SELECT cli.client_name, SUM(cla.claim_amount) AS total_claims
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+WHERE SUM(cla.claim_amount) > 30000
+GROUP BY cli.client_name;
+
+#WHERE SUM(cla.claim_amount) > 30000. An agg function should be used with a group by, not in the where clause. It should be in a having
+#Fix version
+SELECT cli.client_name, SUM(cla.claim_amount) AS total_claims
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+GROUP BY cli.client_name
+having SUM(cla.claim_amount) > 30000;
+
+#Exercise B — This query has 2 bugs, find and fix them:
+SELECT cli.country, COUNT(cre.assessment_id) AS total_assessments
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id
+GROUP BY cli.country
+WHERE cre.status = 'Approved'
+HAVING total_assessments > 0;
+
+#where should be before the group by, not after.
+#The join should be in the other way, first the clients table join to the credit table 
+#Fixed version
+SELECT cli.country, COUNT(cre.assessment_id) AS total_assessments
+FROM clients cli
+JOIN credit_assessments cre ON cre.client_id = cli.client_id
+WHERE cre.status = 'Approved'
+GROUP BY cli.country
+HAVING total_assessments > 0;
