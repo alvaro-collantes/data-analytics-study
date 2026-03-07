@@ -790,12 +790,38 @@ group by cli.client_name) as sub_aggfunc;
 #Exercise 4
 #For each claim show client_name, country, claim_amount, and rank the claims within each country by claim_amount descending.
 
+select cli.client_name, cli.country, cla.claim_amount, 
+rank() over(partition by cli.country order by cla.claim_amount desc) as rnk
+from clients cli
+join claims cla on cli.client_id = cla.client_id;
+
+#it says for each claim , so it is join, keep second table
+#it says rank within country so, partitio by and the order by the claim amount
 #Exercise 5
 #Show each client's name, claim_amount, and alongside each row show both the client's total claims AND the running total across all claims ordered by claim_date.
 
+select cli.client_name, cla.claim_amount,
+sum(cla.claim_amount) over(order by cla.claim_date) as running_total_claims,
+sum(cla.claim_amount) over(partition by cli.client_name) as full_total_claims
+from clients cli
+join claims cla on cli.client_id = cla.client_id;
+#cumulative total per client, no reset
 #Exercise 6
-#Show the top 1 claim per client — the highest claim amount per client. Show client_name, claim_id and claim_amount. (Hint: ROW_NUMBER + subquery)
+#Show the top 1 claim per client — the highest claim amount per client. Show client_name, claim_id and claim_amount. 
 
+SELECT client_name, claim_id, claim_amount
+FROM (
+    SELECT cli.client_name, cla.claim_id, cla.claim_amount,
+        ROW_NUMBER() OVER(
+            PARTITION BY cli.client_name
+            ORDER BY cla.claim_amount DESC  
+        ) AS rnk
+    FROM clients cli
+    JOIN claims cla ON cli.client_id = cla.client_id
+) AS ranked
+WHERE rnk = 1;
+
+#get the row number part as subquery, after that put it inside a outer query with condition on the row number
 
 #Exercise 7
 #For each country show the monthly total claim amount, the previous month's total using LAG(), and the difference between the two.
