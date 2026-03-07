@@ -575,17 +575,37 @@ JOIN clients cli ON cla.client_id = cli.client_id;
 #Exercise 1 — ROW_NUMBER
 #Number each claim per country, ordered by claim_amount descending. Show client_name, country, claim_amount and the row number.
 select * from clients;
-select cli.client_name, cli.country,  claim_amount ,
-row_number() over(partition by cli.client_name order by cla.claim_amount) as claim_number
+#query
+select cli.client_name, cli.country,  cla.claim_amount ,
+row_number() over(partition by cli.client_name order by cla.claim_amount desc) as claim_number
 from clients cli
 left join claims cla
 on cli.client_id = cla.client_id
 ;
 #Exercise 2 — RANK
 #Rank all clients by their total claim amount (highest first). Show client_name, total claim amount and their rank. Clients with no claims should not appear.
+use sql_practice;
+select * from claims;
 
+select cli.client_name, cla.claim_amount, 
+rank()over(order by cla.claim_amount desc) as rank_claim
+from clients cli
+left join claims cla 
+on cli.client_id = cla.client_id and cla.client_id > 0
+;
 #Exercise 3 — Running Total
 #Show a running total of claim amounts ordered by claim_date. Show claim_id, claim_date, claim_amount and the running total.
 
+select claim_id, claim_date, claim_amount,
+sum(claim_amount) over (order by claim_date) as run_total
+from claims; 
+
 #Exercise 4 — PARTITION BY
-#For each claim, show the client_name, claim_amount, and the total claim amount for that client alongside each row (not a running total — the full total for that client on every row).
+#For each claim, show the client_name, claim_amount, and the total claim amount for that client alongside each row 
+#(not a running total — the full total for that client on every row).
+
+select cli.client_name, cla.claim_amount,
+sum(cla.claim_amount) over(partition by cli.client_name order by cla.claim_date) as run_total_client
+from clients cli
+left join claims cla
+on cli.client_id = cla.client_id;
