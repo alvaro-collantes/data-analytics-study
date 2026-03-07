@@ -952,11 +952,33 @@ where total_claims > 50000;
 #DISTINCT — M1
 #Count how many unique countries have clients who have filed at least one Paid claim.
 
+select cli.client_name,count(distinct cli.country) as unique_countries,
+sum(case when cla.claim_status = 'Paid' then 1 else 0 end) as paid_claim
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.client_name
+having paid_claim > 1;
+
 #Date Aggregations — M2
 #Show for each client the total claims per month. Only show months where the client's total is above 20000.
+
+select cli.client_name, month(cla.claim_date) as months, sum(cla.claim_amount) as total_amount
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.client_name, month(cla.claim_date)
+having sum(cla.claim_amount) > 20000;
 
 #Pivoting — M3
 #For each client show their total Paid amount and total Pending amount as separate columns. Include all clients even with no claims.
 
+select cli.client_name, 
+sum(case when cla.claim_status = 'Paid' then cla.claim_amount else 0 end) as paid_status,
+sum(case when cla.claim_status = 'Pending' then cla.claim_amount else 0 end) as pending_status
+from clients cli
+left join claims cla on cli.client_id = cla.client_id
+group by cli.client_name;
+
 #CTE — M4
 #Using a CTE, rank all clients by their total claim amount. Show client_name, total_claims and their rank. Only show clients who have made at least one claim.
+
+select 
