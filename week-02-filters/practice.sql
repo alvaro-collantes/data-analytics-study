@@ -958,6 +958,12 @@ from clients cli
 join claims cla on cli.client_id = cla.client_id
 group by cli.client_name
 having paid_claim > 1;
+#always return 1, there is a best approach and correct too
+
+SELECT COUNT(DISTINCT cli.country) AS unique_countries
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+WHERE cla.claim_status = 'Paid';
 
 #Date Aggregations — M2
 #Show for each client the total claims per month. Only show months where the client's total is above 20000.
@@ -967,6 +973,17 @@ from clients cli
 join claims cla on cli.client_id = cla.client_id
 group by cli.client_name, month(cla.claim_date)
 having sum(cla.claim_amount) > 20000;
+#it is better to use date_format to keep the years in case, there are more years and then using month, it will be merged
+#and add order by , because there are dates
+
+SELECT cli.client_name,
+    DATE_FORMAT(cla.claim_date, '%Y-%m') AS year_months,
+    SUM(cla.claim_amount) AS total_amount
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+GROUP BY cli.client_name, DATE_FORMAT(cla.claim_date, '%Y-%m')
+HAVING SUM(cla.claim_amount) > 20000
+ORDER BY cli.client_name, year_months;
 
 #Pivoting — M3
 #For each client show their total Paid amount and total Pending amount as separate columns. Include all clients even with no claims.
@@ -981,4 +998,13 @@ group by cli.client_name;
 #CTE — M4
 #Using a CTE, rank all clients by their total claim amount. Show client_name, total_claims and their rank. Only show clients who have made at least one claim.
 
-select 
+with rank_table as (
+select cli.client_name, sum(cla.claim_amount) as total_claim
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.client_name)
+select client_name, total_claim, 
+rank() over(order by total_claim) as rnk
+from rank_table;
+
+#it is missing the order, desc
