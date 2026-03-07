@@ -822,13 +822,127 @@ FROM (
 WHERE rnk = 1;
 
 #get the row number part as subquery, after that put it inside a outer query with condition on the row number
+#innter query inside and outer query outside
 
 #Exercise 7
 #For each country show the monthly total claim amount, the previous month's total using LAG(), and the difference between the two.
 
+SELECT year_month, country, monthly_total,
+    LAG(monthly_total) OVER(
+        PARTITION BY country
+        ORDER BY year_month
+    ) AS prev_month_total,
+    monthly_total - LAG(monthly_total) OVER(
+        PARTITION BY country
+        ORDER BY year_month
+    ) AS difference
+FROM (
+    SELECT DATE_FORMAT(cla.claim_date, '%Y-%m') AS year_month,
+        cli.country,
+        SUM(cla.claim_amount) AS monthly_total
+    FROM claims cla
+    JOIN clients cli ON cla.client_id = cli.client_id
+    GROUP BY DATE_FORMAT(cla.claim_date, '%Y-%m'), cli.country
+) AS monthly
+ORDER BY country, year_month;
+
 #Exercise 8
 #Show each client's name, their total claim amount, their rank among all clients, and a column called vs_average that says 'Above' if their total is above the average total claim amount, and 'Below' otherwise. (Hint: subquery + window function + CASE WHEN)
 
+SELECT client_name, total_claims,
+    RANK() OVER(ORDER BY total_claims DESC) AS rnk,
+    CASE
+        WHEN total_claims > AVG(total_claims) OVER() THEN 'Above'
+        ELSE 'Below'
+    END AS vs_average
+FROM (
+    SELECT cli.client_name,
+        SUM(cla.claim_amount) AS total_claims
+    FROM clients cli
+    JOIN claims cla ON cli.client_id = cla.client_id
+    GROUP BY cli.client_name
+) AS totals;
+
 #Exercise 9
-#For each client show their name, each claim_amount, the running total per client, and a column called threshold_status that says 'Under 40k' if the running total is below 40000, 'Over 40k' if above. Order by client_name and claim_date.
- 
+#For each client show their name, each claim_amount, the running total per client, and a column called threshold_status that says 'Under 40k' if the running total is below 40000, 'Over 40k' if above. Order by client_name and claim_date
+
+SELECT cli.client_name, cla.claim_amount,
+    SUM(cla.claim_amount) OVER(
+        PARTITION BY cli.client_name
+        ORDER BY cla.claim_date
+    ) AS running_total,
+    CASE
+        WHEN SUM(cla.claim_amount) OVER(
+            PARTITION BY cli.client_name
+            ORDER BY cla.claim_date
+        ) < 40000 THEN 'Under 40k'
+        ELSE 'Over 40k'
+    END AS threshold_status
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+ORDER BY cli.client_name, cla.claim_date;
+
+SELECT DISTINCT cli.country
+FROM clients cli
+JOIN credit_assessments cre ON cli.client_id = cre.client_id;
+
+SELECT DATE_FORMAT(claim_date, '%Y-%m') AS years_months
+FROM claims;
+
+SELECT YEAR(claim_date) AS claim_year,
+  SUM(claim_amount) AS total_amount
+FROM claims
+GROUP BY YEAR(claim_date)
+ORDER BY claim_year;
+
+SELECT year_months, monthly_total,
+  LAG(monthly_total) OVER(ORDER BY year_months) AS prev_month_total,
+  monthly_total - LAG(monthly_total) OVER(ORDER BY year_months) AS difference
+FROM (
+  SELECT DATE_FORMAT(claim_date, '%Y-%m') AS year_months,
+    SUM(claim_amount) AS monthly_total
+  FROM claims
+  GROUP BY DATE_FORMAT(claim_date, '%Y-%m')
+) AS monthly_totals
+ORDER BY year_months;
+
+#DISTINCT — E1
+#List all unique countries that have at least one client with an Approved assessment.
+
+select distinct cli.country 
+from clients cli
+join credit_assessments cre on cli.client_id = cre.client_id
+where cre.status = 'Approved';
+
+#Date Aggregations — E2
+#Show the total claim amount per month. Display year_month and total_amount, ordered by month.
+
+select date_format(claim_date,'%Y-%m') as year_months, sum(claim_amount) as total_claim
+from claims 
+group by date_format(claim_date,'%Y-%m')
+order by date_format(claim_date,'%Y-%m');
+
+#Pivoting — E3
+#For each country show the number of Approved and Rejected assessments as separate columns.
+
+select cli.country,
+sum(case when cre.status = 'Approved' then 1 else 0 end) as approved_assessments,
+sum(case when cre.status = 'Rejected' then 1 else 0 end) as rejected_assessments
+from clients cli
+join credit_assessments cre on cli.client_id = cre.client_id
+group by cli.country;
+
+#CTE — E4
+#Using a CTE, find all clients whose total claim amount is above 50000. Show client_name and total_claims.
+with clients_claim as (
+select cli.client_name, sum(cla.claim_amount) as total_claims
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.client_name
+having sum(cla.claim_amount) > 50000 
+)
+select client_name, total_claims
+from clients_claim;
+
+#in the the last select, dont add the prefix
+
