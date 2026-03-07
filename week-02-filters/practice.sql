@@ -906,6 +906,7 @@ FROM (
 ) AS monthly_totals
 ORDER BY year_months;
 
+#Easy
 #DISTINCT — E1
 #List all unique countries that have at least one client with an Approved assessment.
 
@@ -939,10 +940,23 @@ select cli.client_name, sum(cla.claim_amount) as total_claims
 from clients cli
 join claims cla on cli.client_id = cla.client_id
 group by cli.client_name
-having sum(cla.claim_amount) > 50000 
 )
 select client_name, total_claims
-from clients_claim;
+from clients_claim
+where total_claims > 50000;
 
 #in the the last select, dont add the prefix
+#use where in the outside query instead of having inside, is better, you can call the column by the alias
 
+#medium
+#DISTINCT — M1
+#Count how many unique countries have clients who have filed at least one Paid claim.
+
+#Date Aggregations — M2
+#Show for each client the total claims per month. Only show months where the client's total is above 20000.
+
+#Pivoting — M3
+#For each client show their total Paid amount and total Pending amount as separate columns. Include all clients even with no claims.
+
+#CTE — M4
+#Using a CTE, rank all clients by their total claim amount. Show client_name, total_claims and their rank. Only show clients who have made at least one claim.
