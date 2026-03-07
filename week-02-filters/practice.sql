@@ -583,6 +583,8 @@ left join claims cla
 on cli.client_id = cla.client_id
 ;
 #fix: the partition should be by COUNTRY not name client name. Also, use just join, to avoid show the null
+#why use just join? because the exercise says Number each claim per country, the claims are from the right table, 
+# if it says Show all clients with their claims, will be the left join
 select cli.client_name, cli.country,  cla.claim_amount ,
 row_number() over(partition by cli.country order by cla.claim_amount desc) as claim_number
 from clients cli
@@ -604,11 +606,12 @@ on cli.client_id = cla.client_id and cla.client_id > 0
 
 #Exercise 3 — Running Total
 #Show a running total of claim amounts ordered by claim_date. Show claim_id, claim_date, claim_amount and the running total.
-
+use sql_practice;
 select claim_id, claim_date, claim_amount,
 sum(claim_amount) over (order by claim_date) as run_total
 from claims; 
 #Ok
+select * from claims;
 
 #Exercise 4 — PARTITION BY
 #For each claim, show the client_name, claim_amount, and the total claim amount for that client alongside each row 
@@ -620,9 +623,186 @@ from clients cli
 left join claims cla
 on cli.client_id = cla.client_id;
 #It says: not a running total — the full total for that client on every row, means that it is not necessary the order by inside the over. I need the full sum
-#by each row, so it is not needed the order
+#by each row, so it is not needed the order. Use join, because the subject is claims that is in the right table, not clients
 #Fixed
 SELECT cli.client_name, cla.claim_amount,
 SUM(cla.claim_amount) OVER(PARTITION BY cli.client_name) AS total_per_client
 FROM clients cli
 JOIN claims cla ON cli.client_id = cla.client_id;
+
+#subqueries
+
+SELECT client_name, total_claims,
+  CASE
+    WHEN total_claims > 50000 THEN 'Critical'
+    WHEN total_claims BETWEEN 20000 AND 50000 THEN 'Watch'
+    ELSE 'Good'
+  END AS health
+FROM (
+  SELECT cli.client_name, SUM(cla.claim_amount) AS total_claims
+  FROM clients cli
+  JOIN claims cla ON cli.client_id = cla.client_id
+  GROUP BY cli.client_name
+) AS totals;
+
+SELECT country,
+  SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) AS approved_count
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id
+GROUP BY country;
+
+SELECT country,
+  SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) AS approved_count
+FROM clients cli
+JOIN credit_assessments cre ON cre.client_id = cli.client_id
+GROUP BY country;
+
+SELECT country,
+  SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) AS approved_count,
+  SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END) AS rejected_count,
+  COUNT(*) AS total_assessments
+FROM clients cli
+JOIN credit_assessments cre ON cli.client_id = cre.client_id
+GROUP BY country;
+
+-- Use CASE WHEN on a SUM result (needs subquery or window function)
+SELECT client_name, total_claims,
+  CASE
+    WHEN total_claims > 50000 THEN 'Critical'
+    WHEN total_claims BETWEEN 20000 AND 50000 THEN 'Watch'
+    WHEN total_claims < 20000 THEN 'Good'
+    ELSE 'No Claims'
+  END AS health
+FROM (
+  SELECT cli.client_name, COALESCE(SUM(cla.claim_amount), 0) AS total_claims
+  FROM clients cli
+  LEFT JOIN claims cla ON cli.client_id = cla.client_id
+  GROUP BY cli.client_name
+) AS totals;
+
+ -- Find all claims above the average claim amount
+SELECT claim_id, client_id, claim_amount
+FROM claims
+WHERE claim_amount > (
+  SELECT AVG(claim_amount)   -- runs first, returns one number (38333)
+  FROM claims
+);
+
+SELECT AVG(claim_amount)   -- runs first, returns one number (38333)
+  FROM claims;
+  
+  SELECT cli.client_name, cla.claim_amount
+FROM claims cla
+JOIN clients cli ON cla.client_id = cli.client_id
+WHERE cla.claim_amount > (
+    SELECT AVG(cla2.claim_amount)
+    FROM claims cla2
+    JOIN clients cli2 ON cla2.client_id = cli2.client_id
+    WHERE cli2.country = 'France'
+);
+
+SELECT cli.client_name, cre.credit_limit,
+  RANK()       OVER(ORDER BY cre.credit_limit DESC) AS rnk,
+  DENSE_RANK() OVER(ORDER BY cre.credit_limit DESC) AS dense_rnk
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id;
+
+#Practice with more data
+
+USE sql_practice;
+
+-- Clear existing data first
+DELETE FROM claims;
+DELETE FROM credit_assessments;
+DELETE FROM clients;
+
+-- CLIENTS — 8 rows
+INSERT INTO clients VALUES
+(1, 'Renault',        'France',      'Large'),
+(2, 'Fiat',          'Italy',       'Medium'),
+(3, 'Siemens',       'Germany',     'Large'),
+(4, 'Peugeot',       'France',      'Small'),
+(5, 'Volkswagen',    'Germany',     'Large'),
+(6, 'Airbus',        'France',      'Large'),
+(7, 'Ferrero',       'Italy',       'Medium'),
+(8, 'BASF',          'Germany',     'Small');
+
+-- CREDIT ASSESSMENTS — 8 rows
+INSERT INTO credit_assessments VALUES
+(101, 1, '2024-01-15', 500000,  'Approved'),
+(102, 2, '2024-02-10', 150000,  'Rejected'),
+(103, 3, '2024-02-20', 800000,  'Approved'),
+(104, 4, '2024-03-05', 90000,   'Approved'),
+(105, 5, '2024-03-18', 950000,  'Approved'),
+(106, 6, '2024-04-02', 600000,  'Approved'),
+(107, 7, '2024-04-15', 200000,  'Rejected'),
+(108, 8, '2024-05-01', 120000,  'Approved');
+
+-- CLAIMS — 12 rows (spread across clients and dates)
+INSERT INTO claims VALUES
+(201, 1, '2024-03-01', 20000,  'Paid'),
+(202, 1, '2024-04-15', 35000,  'Pending'),
+(203, 3, '2024-03-22', 60000,  'Paid'),
+(204, 5, '2024-04-10', 45000,  'Paid'),
+(205, 5, '2024-05-20', 80000,  'Paid'),
+(206, 6, '2024-04-28', 15000,  'Pending'),
+(207, 6, '2024-06-10', 55000,  'Paid'),
+(208, 3, '2024-05-14', 30000,  'Pending'),
+(209, 1, '2024-06-01', 25000,  'Paid'),
+(210, 7, '2024-06-15', 10000,  'Paid'),
+(211, 4, '2024-07-03', 42000,  'Pending'),
+(212, 5, '2024-07-18', 70000,  'Paid');
+
+ #Window Functions Exercises
+
+#Exercise 1
+#Show each claim with its claim_id, client_name, claim_amount, and a row number ordered by claim_amount descending across all claims
+
+select cla.claim_id,cli.client_name,cla.claim_amount,
+row_number() over(order by cla.claim_amount desc) as row_n
+from clients cli
+join claims cla on cli.client_id = cla.client_id;
+#It says across all the claims (just order by) and each claim (use join)
+#Exercise 2
+#For each client show their claim_id, claim_date, claim_amount, and a running total of their claims ordered by claim_date. Reset the total per client.
+
+select cla.claim_id,cli.client_name,cla.claim_date,cla.claim_amount,
+sum(cla.claim_amount) over(partition by cli.client_name order by cla.claim_date) as running_total
+from clients cli
+join claims cla on cli.client_id = cla.client_id; 
+
+#it says for each client show. Should be left?  but with claim id there are null. But i have all the names, it looks better without those nulls
+#Also, it says running total of their claims, means the sum or the count? I think it make more sense the sum than the count
+
+#Exercise 3
+#Rank all clients by their total credit limit from highest to lowest. Show client_name, credit_limit and the rank. (Hint: you need a subquery)
+
+select client_name, total_credit_limit,
+rank() over(order by total_credit_limit desc) as rnk
+from( 
+select cli.client_name, sum(cre.credit_limit) as total_credit_limit
+from clients cli
+join credit_assessments cre on cli.client_id = cre.client_id
+group by cli.client_name) as sub_aggfunc;
+#In the outquery it must be the columns names without the prefix
+#rank all clients by their total credit limit: implies only clients who have a credit assessment. Clients with no assessment have no credit limit to rank. So INNER JOIN is correct.
+
+#Exercise 4
+#For each claim show client_name, country, claim_amount, and rank the claims within each country by claim_amount descending.
+
+#Exercise 5
+#Show each client's name, claim_amount, and alongside each row show both the client's total claims AND the running total across all claims ordered by claim_date.
+
+#Exercise 6
+#Show the top 1 claim per client — the highest claim amount per client. Show client_name, claim_id and claim_amount. (Hint: ROW_NUMBER + subquery)
+
+
+#Exercise 7
+#For each country show the monthly total claim amount, the previous month's total using LAG(), and the difference between the two.
+
+#Exercise 8
+#Show each client's name, their total claim amount, their rank among all clients, and a column called vs_average that says 'Above' if their total is above the average total claim amount, and 'Below' otherwise. (Hint: subquery + window function + CASE WHEN)
+
+#Exercise 9
+#For each client show their name, each claim_amount, the running total per client, and a column called threshold_status that says 'Under 40k' if the running total is below 40000, 'Over 40k' if above. Order by client_name and claim_date.
+ 
