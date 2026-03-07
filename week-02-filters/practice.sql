@@ -582,6 +582,13 @@ from clients cli
 left join claims cla
 on cli.client_id = cla.client_id
 ;
+#fix: the partition should be by COUNTRY not name client name. Also, use just join, to avoid show the null
+select cli.client_name, cli.country,  cla.claim_amount ,
+row_number() over(partition by cli.country order by cla.claim_amount desc) as claim_number
+from clients cli
+join claims cla
+on cli.client_id = cla.client_id
+;
 #Exercise 2 — RANK
 #Rank all clients by their total claim amount (highest first). Show client_name, total claim amount and their rank. Clients with no claims should not appear.
 use sql_practice;
@@ -593,12 +600,15 @@ from clients cli
 left join claims cla 
 on cli.client_id = cla.client_id and cla.client_id > 0
 ;
+#It needs subqueries
+
 #Exercise 3 — Running Total
 #Show a running total of claim amounts ordered by claim_date. Show claim_id, claim_date, claim_amount and the running total.
 
 select claim_id, claim_date, claim_amount,
 sum(claim_amount) over (order by claim_date) as run_total
 from claims; 
+#Ok
 
 #Exercise 4 — PARTITION BY
 #For each claim, show the client_name, claim_amount, and the total claim amount for that client alongside each row 
@@ -609,3 +619,10 @@ sum(cla.claim_amount) over(partition by cli.client_name order by cla.claim_date)
 from clients cli
 left join claims cla
 on cli.client_id = cla.client_id;
+#It says: not a running total — the full total for that client on every row, means that it is not necessary the order by inside the over. I need the full sum
+#by each row, so it is not needed the order
+#Fixed
+SELECT cli.client_name, cla.claim_amount,
+SUM(cla.claim_amount) OVER(PARTITION BY cli.client_name) AS total_per_client
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id;
