@@ -1303,6 +1303,20 @@ row_number() over(partition by cli.country order by cla.claim_date desc) as rn
 from clients cli
 join claims cla on cli.client_id = cla.client_id;
 
+#It means the MOST RECENT = 1 
+
+SELECT country, client_name, claim_date, claim_amount
+FROM (
+    SELECT cli.country, cli.client_name, cla.claim_date, cla.claim_amount,
+        ROW_NUMBER() OVER(
+            PARTITION BY cli.country
+            ORDER BY cla.claim_date DESC
+        ) AS rn
+    FROM clients cli
+    JOIN claims cla ON cli.client_id = cla.client_id
+) AS ranked
+WHERE rn = 1;
+
 #Q10 — Bug fixing
 `
 H1: This query has 2 bugs — find and fix them:
