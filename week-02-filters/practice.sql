@@ -1377,3 +1377,82 @@ join clients cli on cre.client_id = cli.client_id
 group by cli.country
 having count(cre.assessment_id) > 1
 order by total desc;
+
+#Revision
+#GROUP BY + Window function (no unnecessary GROUP BY)
+#Exercise 1
+#For each client show their name, each individual claim_amount, and the client's full total claim amount alongside every row. Order by client_name.
+#col:clientname, claimamount, fulltotal
+#tab:client,claims
+#con:each client(left join), clientname, allongside full total, just partition
+
+select cli.client_name,cla.claim_amount,
+sum(claim_amount) over (partition by cli.client_name ) as full_total
+from clients cli
+join claims cla on cli.client_id=cla.client_id
+;
+
+#Exercise 2
+#Show each claim with claim_id, client_name, claim_date, claim_amount, and a running total per client ordered by claim_date. No GROUP BY allowed.
+#col:claim_id, client_name, claim_date, claim_amount, and a running total
+#tab:clients, claims
+#col: each claim(join),run total ordered by claim data
+
+select cla.claim_id,cli.client_name,cla.claim_date, cla.claim_amount,
+sum(cla.claim_amount) over( partition by cli.client_name order by cla.claim_date) as running_total
+from clients cli
+join claims cla on cli.client_id = cla.client_id;
+
+#RANK() with DESC — always
+#Exercise 3
+#For each segment rank clients by their total credit limit from highest to lowest. Show segment, client_name, total_credit_limit and rank within segment.
+#col:segment, client_name, total_credit_limit and rank 
+#tab:clients, credit_assessments
+#con:rank desc
+select segment, client_name,total_credit_limit,
+rank()over(partition by segment order by total_credit_limit desc) as rnk
+from(
+select cli.segment, cli.client_name, sum(cre.credit_limit) as total_credit_limit
+from clients cli
+join credit_assessments cre on cli.client_id = cre.client_id
+group by cli.segment, cli.client_name) as sub_querytotal;
+
+#Exercise 4
+#Rank all countries by their total claim amount. Show country, total_claims and rank. Only show countries that have at least one claim.
+#col:Show country, total_claims and rank
+#tab:clients,claims
+#con:rank all countries 1tab by total claim 2tab(left join). Only with at least 1 claim(where)
+
+select country, total_claims, 
+rank() over(order by total_claims desc) as rnk
+from(
+select cli.country, sum(cla.claim_amount) as total_claims
+from clients cli 
+join claims cla on cli.client_id = cla.client_id
+group by cli.country) as sub_total
+where total_claims > 1;
+
+
+#DATE_FORMAT + complete HAVING
+#Exercise 5
+#Show total claim amount per client per month. Only show rows where the monthly total is above 30000. Order by client_name and year_month.
+
+select cli.client_name, date_format(cla.claim_date, '%Y-%m') as yearmonths, sum(cla.claim_amount) as monthly_total
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.client_name, date_format(cla.claim_date, '%Y-%m')
+having monthly_total > 30000
+order by client_name asc, yearmonths asc;
+
+#Exercise 6
+#Show the number of claims per month. Only show months with more than 2 claims. Display year_month and claim_count.
+
+select date_format(cla.claim_date, '%Y-%m') as year_months , cla.claim_amount , count(cli.client_name) as total_claims
+from clients cli 
+join claims cla on cli.client_id=cla.client_id
+group by date_format(claim_date, '%Y-%m') , claim_amount
+having count(*) >2
+;
+
+select * from claims;
+
