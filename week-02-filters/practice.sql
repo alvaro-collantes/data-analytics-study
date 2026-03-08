@@ -1273,9 +1273,93 @@ order by yearmonths asc ;
 #order chronologically is just by the date, not the totals
 #M2: Show total claim amount per client per month. Only show rows where the monthly total is above 15000.
 
-select cli.client_name, month(cla.claim_date) as months, sum(cla.claim_amount) as monthly_total
+SELECT cli.client_name,
+    DATE_FORMAT(cla.claim_date, '%Y-%m') AS year_months,
+    SUM(cla.claim_amount) AS monthly_total
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+GROUP BY cli.client_name, DATE_FORMAT(cla.claim_date, '%Y-%m')
+HAVING SUM(cla.claim_amount) > 15000
+ORDER BY cli.client_name, year_months;
+
+#always use date_format, just months , combines all the monhths of all the years. 
+#missing condition in the having > 150000
+
+#Hard
+#Q9 — Top N per group
+#H1: Show the top 2 claims per client by claim_amount. Show client_name, claim_id, claim_amount and rank. 
+select client_name,claim_id,claim_amount, rnk
+from(
+select cli.client_name, cla.claim_id,cla.claim_amount,
+rank() over(partition by cli.client_name order by cla.claim_amount desc) as rnk
 from clients cli
-join claims cla on cli.client_id = cla.client_id
-group by cli.client_name, month(cla.claim_date)
-having sum(cla.claim_amount)
-;
+join claims cla on cli.client_id = cla.client_id) as rank_amount
+where rnk <=2;
+
+#H2: Show the most recent claim per country. Show country, client_name, claim_date and claim_amount. (Hint: most recent = ROW_NUMBER ordered by claim_date DESC)
+
+select cli.country,cli.client_name, cla.claim_date, cla.claim_amount,
+row_number() over(partition by cli.country order by cla.claim_date desc) as rn
+from clients cli
+join claims cla on cli.client_id = cla.client_id;
+
+#Q10 — Bug fixing
+`
+H1: This query has 2 bugs — find and fix them:
+sql
+SELECT cli.client_name, SUM(cla.claim_amount) AS total_claims
+FROM clients cli
+LEFT JOIN claims cla ON cli.client_id = cla.client_id
+WHERE cla.claim_status = 'Paid'
+GROUP BY cli.client_name
+HAVING total_claims > 30000;
+`
+#Bug 1: WHERE cla.claim_status = 'Paid', it is a left join, with this where on the right table will break it, should be in the ON as AND 
+#Bug 2: HAVING total_claims > 30000, it must be the expression SUM(cla.claim_amount), not the alias. It is better practice
+
+#Correction
+
+select cli.client_name, sum(cla.claim_amount) as total_claims
+from clients cli
+left join claims cla on cli.client_id = cla.client_id and cla.claim_status = 'Paid'
+group by cli.client_name
+having sum(cla.claim_amount) > 30000;
+# I try to run it but sql says i have a syntax error (error code 1064, why?)
+
+# in this one i can do it , why? 
+select cli.client_name, sum(cla.claim_amount) as total_claims
+from clients cli
+left join claims cla on cli.client_id = cla.client_id and cla.claim_status = 'Paid'
+group by cli.client_name
+having sum(cla.claim_amount) > 30000;
+
+# I try to run it but sql says i have a syntax error (error code 1064, why?)
+`
+H2: This query has 2 bugs — find and fix them:
+sql
+SELECT cli.country, COUNT(cre.assessment_id) AS total
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id
+WHERE total > 1
+GROUP BY cli.country
+ORDER BY total DESC;
+`
+#Bug 1: WHERE total > 1,  it is an agg function, needs a having with the expression
+#Bug 2: COUNT(cre.assessment_id), need to be *, better
+
+#correction
+#i have error here why?
+SELECT cli.country, COUNT(cre.assessment_id) AS total
+FROM credit_assessments cre
+JOIN clients cli ON cre.client_id = cli.client_id
+GROUP BY cli.country
+having COUNT(cre.assessment_id) > 1
+ORDER BY total DESC;
+
+#i can do it here why?
+select cli.country, count(*) as total
+from credit_assessments cre
+join clients cli on cre.client_id = cli.client_id
+group by cli.country
+having count(cre.assessment_id) > 1
+order by total desc;
