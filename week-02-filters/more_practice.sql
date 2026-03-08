@@ -53,6 +53,8 @@ INSERT INTO claims VALUES
 #Level 1 — Basic filtering
 #1 List all customers.
 select customer_name from customers;
+#correction: All customers means all the columns
+select * from customers;
 #2 Show customers located in France.
 select customer_name 
 from customers
@@ -71,10 +73,18 @@ where status = 'Approved';
 select pol.policy_id, cus.customer_name
 from policies pol
 left join customers cus on pol.customer_id = cus.customer_id;
+#correction: every policy must have a customer
+select pol.policy_id, cus.customer_name
+from policies pol
+join customers cus on pol.customer_id = cus.customer_id;
 #6 List all claims with their policy type.
 select cla.claim_id, pol.policy_type
 from claims cla
 left join policies pol on cla.policy_id = cla.policy_id;
+#correction: joined the same col, wrong on
+select cla.claim_id, pol.policy_type
+from claims cla
+left join policies pol on cla.policy_id = pol.policy_id;
 #7 Show all customers and their policies (even if none exist).
 select * from policies;
 select cus.customer_name, pol.policy_id 
@@ -92,6 +102,11 @@ select cus.customer_name, sum(pol.premium) as total_premiun
 from customers cus
 join policies pol on cus.customer_id = pol.customer_id
 group by cus.customer_name;
+#correction: group by id, safer
+select cus.customer_id, cus.customer_name, sum(pol.premium) as total_premiun
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+group by cus.customer_id,cus.customer_name;
 #10 Count the number of policies per customer.
 select cus.customer_name, count(pol.policy_id) as total_policies
 from customers cus
@@ -115,6 +130,12 @@ from policies pol
 join claims cla on pol.policy_id = cla.policy_id
 join customers cus on cus.customer_id = pol.customer_id
 group by pol.policy_id, cus.customer_name;
+#correction: remove the policy_id, it is just per customer
+select cus.customer_name,sum(cla.claim_amount) as total_claims_amount
+from policies pol 
+join claims cla on pol.policy_id = cla.policy_id
+join customers cus on cus.customer_id = pol.customer_id
+group by cus.customer_name;
 #14 Find the average claim amount.
 select avg(claim_amount) as avg_client_amount
 from claims;
@@ -134,6 +155,11 @@ row_number() over(order by cla.claim_amount desc) as rn
 from claims cla
 join policies pol on pol.policy_id = cla.policy_id) as high_query
 where rn = 1;
+#correction: correct, but there is a simpler solution
+select policy_id, claim_amount
+from claims
+ORDER BY claim_amount DESC
+LIMIT 1;
 #Level 5 — Typical interview questions
 #17 Find customers with more than one policy.
 select cus.customer_name, count(pol.customer_id) as total_policies_number
@@ -148,6 +174,12 @@ select pol.policy_id, cla.claim_id
 from policies pol
 join claims cla on pol.policy_id = cla.policy_id
 where pol.policy_id is null;
+#correction: wrong impossible condition. It says no claims = without claims, left join
+SELECT pol.policy_id
+FROM policies pol
+LEFT JOIN claims cla
+ON pol.policy_id = cla.policy_id
+WHERE cla.policy_id IS NULL;
 #19 Find the country with the highest total claim amount.
 select country,claim_amount
 from(
@@ -167,4 +199,28 @@ from customers cus
 join policies pol on cus.customer_id = pol.customer_id 
 join claims cla on cla.policy_id = pol.policy_id) as query_rn
 where rn <= 3;
+
+#Realistic 1-hour SQL mock test
+
+#Set a 60 minute timer.
+
+#Question 1
+#List all customers who signed up after 2023-04-01.
+
+#Question 2
+#Show all policies with their customer name and country.
+
+#Question 3
+#Find the total number of policies per country.
+
+#Question 4
+#Find the total claim amount per policy.
+#Question 5
+#Find policies that have no claims.
+#Question 6
+#Find the customer with the highest total claim amount.
+#Question 7
+#Find the average claim amount per country.
+#Question 8
+#Find customers who have more than 1 claim.
 
