@@ -1197,15 +1197,16 @@ join claims cla on cli.client_id = cla.client_id;
 #M2: For each country rank clients by their total claim amount. Show country, client_name, total_claims and rank within country.
 #colum: country, client_name, total_claims and rank
 #table: clients, claim
-#cond: rank with agg func
+#cond: rank with agg func and desc
 
 select country, client_name, total_claims,
-rank()over( partition by country order by total_claims) as rnk
+rank()over( partition by country order by total_claims desc) as rnk
 from(
 select cli.country, cli.client_name, sum(cla.claim_amount) as total_claims
 from clients cli
 join claims cla on cli.client_id = cla.client_id
 group by cli.country, cli.client_name) as sub_claim;
+#ALWAYS PUT DESC, it is important to see from highest to lowest
 
 #Q6 — Running total
 #M1: Show a running total of claim amounts ordered by claim_date across all claims. Show claim_id, claim_date, claim_amount and running_total. 
@@ -1216,17 +1217,21 @@ group by cli.country, cli.client_name) as sub_claim;
 select claim_id, claim_date, claim_amount, 
 sum(claim_amount) over ( order by claim_date) as running_total
 from claims
-group by claim_id, claim_date, claim_amount;
+;
+#Remvove group by when there is a WINDOW FUNCTION, it is unnecesary
 
 #M2: Show a running total of claim amounts per client ordered by claim_date. Show client_name, claim_date, claim_amount and running_total_per_client.
 #col:claim_id, claim_date, claim_amount and running_total.
 #tab: clients, claims
 #con:running total   per client ordered by claim_date (cummulative: running total,go with order by and it is partition by , bc it is per client, resets)
 select cli.client_name, cla.claim_date, cla.claim_amount, 
-sum(cla.claim_amount) over ( partition by cla.client_id order by cla.claim_date) as running_total_per_client
+sum(cla.claim_amount) over ( partition by cli.client_name order by cla.claim_date) as running_total_per_client
 from clients cli
 join claims cla on cli.client_id = cla.client_id
-group by cla.claim_id, cla.claim_date, cla.claim_amount;
+;
+
+#Remvove group by when there is a WINDOW FUNCTION, it is unnecesary
+#Partition by, should be by the same name that is showing change client_id by client_name
 
 #Q7 — Pivot
 #M1: For each segment show the count of Approved and Rejected assessments as separate columns. 
@@ -1252,9 +1257,9 @@ select cli.country,
 sum(case when cla.claim_status = 'Paid' then cla.claim_amount else 0 end) as paid_claims,
 sum(case when cla.claim_status = 'Pending' then cla.claim_amount else 0 end) as pending_claims
 from clients cli
-join claims cla on cli.client_id = cla.client_id
+left join claims cla on cli.client_id = cla.client_id
 group by cli.country;
-
+#FORGOT THE LEFT JOIN
 #Q8 — Date aggregation
 #M1: Show total claim amount per month. Display year_month and monthly_total ordered chronologically. 
 #col: year_month and monthly_total
@@ -1264,8 +1269,8 @@ group by cli.country;
 select date_format(claim_date, '%Y-%m') as yearmonths, sum(claim_amount) as monthly_total
 from claims
 group by date_format(claim_date, '%Y-%m')
-order by yearmonths asc , monthly_total asc ;
-
+order by yearmonths asc ;
+#order chronologically is just by the date, not the totals
 #M2: Show total claim amount per client per month. Only show rows where the monthly total is above 15000.
 
 select cli.client_name, month(cla.claim_date) as months, sum(cla.claim_amount) as monthly_total
