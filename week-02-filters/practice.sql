@@ -1181,3 +1181,96 @@ join credit_assessments cre on cli.client_id = cre.client_id ;
 select claim_id, claim_amount,
 case when claim_amount > 50000 then 'Critical' else 'Normal' end as urgency 
 from claims;
+
+#MEDIUM
+#Q5 — Ranking with window function
+#M1: Rank all claims by claim_amount from highest to lowest. Show client_name, claim_amount and rank. 
+#column:client name, claim amonunt, rank
+#table: clients, claims
+#cond:rank desc
+
+select cli.client_name,cla.claim_amount,
+rank() over(order by cla.claim_amount desc) as rnk
+from clients cli
+join claims cla on cli.client_id = cla.client_id;
+
+#M2: For each country rank clients by their total claim amount. Show country, client_name, total_claims and rank within country.
+#colum: country, client_name, total_claims and rank
+#table: clients, claim
+#cond: rank with agg func
+
+select country, client_name, total_claims,
+rank()over( partition by country order by total_claims) as rnk
+from(
+select cli.country, cli.client_name, sum(cla.claim_amount) as total_claims
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.country, cli.client_name) as sub_claim;
+
+#Q6 — Running total
+#M1: Show a running total of claim amounts ordered by claim_date across all claims. Show claim_id, claim_date, claim_amount and running_total. 
+#col:claim_id, claim_date, claim_amount and running_total.
+#tab: clients, claims
+#con:running total  across all claims (cummulative: running total,go with order by ordered by claim_date)
+
+select claim_id, claim_date, claim_amount, 
+sum(claim_amount) over ( order by claim_date) as running_total
+from claims
+group by claim_id, claim_date, claim_amount;
+
+#M2: Show a running total of claim amounts per client ordered by claim_date. Show client_name, claim_date, claim_amount and running_total_per_client.
+#col:claim_id, claim_date, claim_amount and running_total.
+#tab: clients, claims
+#con:running total   per client ordered by claim_date (cummulative: running total,go with order by and it is partition by , bc it is per client, resets)
+select cli.client_name, cla.claim_date, cla.claim_amount, 
+sum(cla.claim_amount) over ( partition by cla.client_id order by cla.claim_date) as running_total_per_client
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cla.claim_id, cla.claim_date, cla.claim_amount;
+
+#Q7 — Pivot
+#M1: For each segment show the count of Approved and Rejected assessments as separate columns. 
+#col:segment
+#tab: client, credit asses
+#con: new col of appro and reject ass
+select * from credit_assessments;
+
+select cli.segment, 
+Sum(case when cre.status = 'Approved' then 1 else 0 end) as Approved_count,
+Sum(case when cre.status = 'Rejected' then 1 else 0 end) as Rejected_count,
+count(*) as assessments
+from clients cli
+join credit_assessments cre on cli.client_id = cre.client_id
+group by cli.segment;
+
+#M2: For each country show the total Paid and total Pending claim amounts as separate columns. Include all countries.
+#col: country all countries
+#tab: clients, claims
+#cond: total paid and pending as col, all(so it is left)
+
+select cli.country, 
+sum(case when cla.claim_status = 'Paid' then cla.claim_amount else 0 end) as paid_claims,
+sum(case when cla.claim_status = 'Pending' then cla.claim_amount else 0 end) as pending_claims
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.country;
+
+#Q8 — Date aggregation
+#M1: Show total claim amount per month. Display year_month and monthly_total ordered chronologically. 
+#col: year_month and monthly_total
+#tab: claim
+#cond: asc
+
+select date_format(claim_date, '%Y-%m') as yearmonths, sum(claim_amount) as monthly_total
+from claims
+group by date_format(claim_date, '%Y-%m')
+order by yearmonths asc , monthly_total asc ;
+
+#M2: Show total claim amount per client per month. Only show rows where the monthly total is above 15000.
+
+select cli.client_name, month(cla.claim_date) as months, sum(cla.claim_amount) as monthly_total
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.client_name, month(cla.claim_date)
+having sum(cla.claim_amount)
+;
