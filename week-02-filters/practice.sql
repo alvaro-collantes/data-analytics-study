@@ -1455,4 +1455,3 @@ having count(*) >2
 ;
 
 select * from claims;
-
