@@ -1152,9 +1152,12 @@ group by cli.client_name;
 #table: clients, credit_assessments
 #cond:all clients(left) if one has null, put 0 instead
 
-select cli.client_name, coalesce(cre.credit_limit, 0) as credit_limit
+select cli.client_name, coalesce(max(cre.credit_limit), 0) as credit_limit
 from clients cli 
-left join credit_assessments cre on cli.client_id = cre.client_id;
+left join credit_assessments cre on cli.client_id = cre.client_id
+group by cli.client_name;
+
+#it is asked to show all clients with their credit limit , so it must be with max in credit limit 
 
 #Q4 — CASE WHEN classification
 #E1: For each assessment show client_name, credit_limit and a column called size — 'Large' if credit_limit > 500000, 'Medium' if between 100000 and 500000, 'Small' otherwise. 
@@ -1165,12 +1168,11 @@ left join credit_assessments cre on cli.client_id = cre.client_id;
 select cli.client_name, cre.credit_limit, 
 case 
 when cre.credit_limit > 500000 then 'Large' 
-when cre.credit_limit between 100000 and 500000 then 'Medium' 
-when cre.credit_limit < 100000 then 'Small'
+when cre.credit_limit between 100000 and 500000 then 'Medium' else 'Small' 
 end as size
 from clients cli
 join credit_assessments cre on cli.client_id = cre.client_id ;
-
+#extra when can be removed, just use else in the second when 
 #E2: For each claim show claim_id, claim_amount and a column called urgency — 'Critical' if above 50000, 'Normal' otherwise.
 #column: claim id, claim amount , urgency
 #table: client, claims
