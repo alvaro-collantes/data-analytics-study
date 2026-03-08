@@ -1004,7 +1004,178 @@ from clients cli
 join claims cla on cli.client_id = cla.client_id
 group by cli.client_name)
 select client_name, total_claim, 
-rank() over(order by total_claim) as rnk
+rank() over(order by total_claim desc) as rnk
 from rank_table;
 
-#it is missing the order, desc
+#it was missing the order, desc
+
+#DISTINCT — H1
+#Show all clients who have filed claims in more than one distinct month. Show client_name and the count of distinct months.
+
+select cli.client_name, count(distinct(date_format(cla.claim_date,'%Y-%m'))) as distinc_months
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+where cla.claim_status = 'Paid'
+group by cli.client_name;
+
+#fix version
+SELECT cli.client_name,
+    COUNT(DISTINCT DATE_FORMAT(cla.claim_date, '%Y-%m')) AS distinct_months
+FROM clients cli
+JOIN claims cla ON cli.client_id = cla.client_id
+GROUP BY cli.client_name
+HAVING COUNT(DISTINCT DATE_FORMAT(cla.claim_date, '%Y-%m')) > 1;
+
+#Date Aggregations — H2
+#Show the month-over-month difference in total claim amounts across all clients. Show year_month, monthly_total, previous month total using LAG(), and the difference. Order by month.
+
+select year_months, monthly_total,
+lag(monthly_total) over(order by year_months) as previous_month,
+monthly_total - lag(monthly_total) over( order by year_months) as differences
+from(
+select date_format(claim_date, '%Y-%m') as year_months, sum(claim_amount) as monthly_total
+from claims
+group by date_format(claim_date, '%Y-%m')
+) as monthly_totals
+order by year_months;
+
+#Pivoting — H3
+#For each country show the total claim amount per month as separate columns — one column for each month that appears in the data. Include country, and one column per month.
+SELECT cli.country,
+    SUM(CASE WHEN DATE_FORMAT(cla.claim_date, '%Y-%m') = '2024-03'
+        THEN cla.claim_amount ELSE 0 END) AS '2024-03',
+    SUM(CASE WHEN DATE_FORMAT(cla.claim_date, '%Y-%m') = '2024-04'
+        THEN cla.claim_amount ELSE 0 END) AS '2024-04',
+    SUM(CASE WHEN DATE_FORMAT(cla.claim_date, '%Y-%m') = '2024-05'
+        THEN cla.claim_amount ELSE 0 END) AS '2024-05',
+    SUM(CASE WHEN DATE_FORMAT(cla.claim_date, '%Y-%m') = '2024-06'
+        THEN cla.claim_amount ELSE 0 END) AS '2024-06',
+    SUM(CASE WHEN DATE_FORMAT(cla.claim_date, '%Y-%m') = '2024-07'
+        THEN cla.claim_amount ELSE 0 END) AS '2024-07'
+FROM clients cli
+LEFT JOIN claims cla ON cli.client_id = cla.client_id
+GROUP BY cli.country
+ORDER BY cli.country;
+
+#CTE — H4
+#Using two CTEs — one for total claims per client, one for average credit limit per client — join them together and show client_name, total_claims, avg_credit_limit, and a column called profile that says:
+#'High Value' if total_claims > 50000 AND avg_credit_limit > 500000
+#'Risk' if total_claims > 50000 AND avg_credit_limit < 500000
+#'Standard' for everything else
+
+WITH total_claims AS (
+    SELECT cli.client_name,
+        SUM(cla.claim_amount) AS total_claims
+    FROM clients cli
+    LEFT JOIN claims cla ON cli.client_id = cla.client_id
+    GROUP BY cli.client_name
+),
+avg_credit AS (
+    SELECT cli.client_name,
+        AVG(cre.credit_limit) AS avg_credit_limit
+    FROM clients cli
+    LEFT JOIN credit_assessments cre ON cli.client_id = cre.client_id
+    GROUP BY cli.client_name
+)
+SELECT
+    tc.client_name,
+    COALESCE(tc.total_claims, 0) AS total_claims,
+    ROUND(COALESCE(ac.avg_credit_limit, 0), 2) AS avg_credit_limit,
+    CASE
+        WHEN tc.total_claims > 50000 AND ac.avg_credit_limit > 500000 THEN 'High Value'
+        WHEN tc.total_claims > 50000 AND ac.avg_credit_limit < 500000 THEN 'Risk'
+        ELSE 'Standard'
+    END AS profile
+FROM total_claims tc
+JOIN avg_credit ac ON tc.client_name = ac.client_name
+ORDER BY tc.client_name;
+
+#Test Exercises
+use sql_practice;
+#Q1 — Basic aggregation with JOIN
+#E1: Show the total claim amount per segment. Order from highest to lowest. 
+#col:total claim amount (sum), segment
+#table: claims,clients (id
+#cond:order desc
+select cli.segment, sum(cla.claim_amount) as total_claim_amount
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+group by cli.segment
+order by sum(cla.claim_amount) desc;
+
+#E2: Count how many clients each country has. Show country and client_count.
+select country, count(*) as client_count
+from clients
+group by country;
+#col: country, client count(count)
+#table:clients
+#cond: no
+
+#Q2 — WHERE + HAVING together
+#E1: Show total claim amount per client, only counting Paid claims. Only show clients whose total is above 20000. 
+#col: client name, total claim amount(sum)
+#table:client, claim
+#Cond: only paid claims (join+where), total claim amount > 20000 (having)
+
+select cli.client_name, sum(cla.claim_amount) as total_claim_amount
+from clients cli
+join claims cla on cli.client_id = cla.client_id
+where cla.claim_status = 'Paid'
+group by cli.client_name
+having sum(cla.claim_amount) > 20000;
+
+#E2: Count assessments per country, only Approved. Only show countries with more than 1 approved assessment.
+#col: assessments count(count) , country
+#table: clients, credit assessments
+#cond: assessments approved (join+where: countries with approved status), countries with > 1 approved assessments (having)
+
+select cli.country, count(cre.client_id) as count_assessments
+from clients cli
+join credit_assessments cre on cli.client_id = cre.client_id
+where cre.status = 'Approved'
+group by cli.country
+having count(cre.client_id) > 1;
+
+#Q3 — LEFT JOIN + COALESCE
+#E1: Show all clients with their total claim amount. If a client has no claims show 0. 
+#columns: all clients, claim_amount (sum)
+#table:clients, claims
+#cond:all clients (left join) and for no claims put 0 instead of null
+
+select cli.client_name, coalesce(sum(cla.claim_amount),0) as total_claim_amount
+from clients cli
+left join claims cla on cli.client_id = cla.client_id
+group by cli.client_name;
+
+#E2: Show all clients with their credit limit. If a client has no assessment show 0.
+#column: all clients, credit limit 
+#table: clients, credit_assessments
+#cond:all clients(left) if one has null, put 0 instead
+
+select cli.client_name, coalesce(cre.credit_limit, 0) as credit_limit
+from clients cli 
+left join credit_assessments cre on cli.client_id = cre.client_id;
+
+#Q4 — CASE WHEN classification
+#E1: For each assessment show client_name, credit_limit and a column called size — 'Large' if credit_limit > 500000, 'Medium' if between 100000 and 500000, 'Small' otherwise. 
+#column: client name, credit limit, classificaction with case when
+#table:client, credit assessments
+#condition: each assessment (rigth table, join)
+
+select cli.client_name, cre.credit_limit, 
+case 
+when cre.credit_limit > 500000 then 'Large' 
+when cre.credit_limit between 100000 and 500000 then 'Medium' 
+when cre.credit_limit < 100000 then 'Small'
+end as size
+from clients cli
+join credit_assessments cre on cli.client_id = cre.client_id ;
+
+#E2: For each claim show claim_id, claim_amount and a column called urgency — 'Critical' if above 50000, 'Normal' otherwise.
+#column: claim id, claim amount , urgency
+#table: client, claims
+#cond: case when , (join, each claim is right table)
+
+select claim_id, claim_amount,
+case when claim_amount > 50000 then 'Critical' else 'Normal' end as urgency 
+from claims;
