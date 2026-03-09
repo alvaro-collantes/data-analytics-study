@@ -503,3 +503,207 @@ group by cus.customer_name) as total;
 select claim_id, claim_date,
 sum(claim_amount) over( order by claim_date asc) as cumulative_claim_amount
 from claims;
+
+#45 Min test
+
+#PART 1
+
+#Question 1
+#Show all policies and their customer names.
+#Expected Columns:policy_id, customer_name ,premium_amount
+
+select pol.policy_id, cus.customer_name, pol.premium as premium_amount
+from policies pol
+left join customers cus on pol.customer_id = cus.customer_id;
+#it is with join
+
+#Question 2
+#Count how many policies each customer has.
+#Expected columns: customer_id, number_of_policies
+
+select cus.customer_id, count(pol.policy_id) as number_of_policies
+from customers cus
+left join policies pol on cus.customer_id = pol.customer_id
+group by cus.customer_id;
+
+#PART 2 — Core SQL Skills
+
+#Question 3
+#Find the total claim amount per policy.
+#Expected columns: policy_id, total_claim_amount
+#Policies with no claims should appear with 0.
+
+select pol.policy_id, coalesce(sum(cla.claim_amount),0) as total_claim_amount
+from policies pol 
+left join claims cla on pol.policy_id = cla.policy_id
+group by pol.policy_id;
+
+#Question 4
+#Find customers who have more than 2 policies.
+#Expected columns: customer_id, policy_count
+
+select cus.customer_id, count(pol.policy_id) as policy_count
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+group by cus.customer_id
+having count(pol.policy_id) > 2;
+
+#Question 5
+#Find the top 5 policies with the highest total claim amount.
+#Expected columns:policy_id ,total_claims
+
+select pol.policy_id, sum(cla.claim_amount) as total_claims
+from policies pol 
+join claims cla on pol.policy_id = cla.policy_id
+group by pol.policy_id
+order by sum(cla.claim_amount) desc
+limit 5;
+#you have the policy id in the claims table, is not necessary the join
+
+#PART 3 — Real Insurance Analytics
+#These are very close to real analyst tasks in insurers
+#Question 6 — Loss Ratio
+#Loss ratio =total claims / premium
+#Calculate the loss ratio per policy.
+#Expected columns: policy_id ,premium_amount,total_claims,loss_ratio
+
+select pol.policy_id ,pol.premium as premium_amount,coalesce(sum(cla.claim_amount),0) as total_claims,coalesce(sum(cla.claim_amount),0)/pol.premium as loss_ratio
+from policies pol
+left join claims cla on pol.policy_id = cla.policy_id
+group by pol.policy_id ,pol.premium;
+#better way, put the coalesce just for the sum(cla.claim_amount), it does not make sense to put it with all
+
+#Question 7 — Risky Customers
+#Find customers whose total claims exceed their total premiums.
+#Expected columns:customer_id,total_claims,total_premium
+
+select customer_id,total_claims,total_premium
+from(
+select cus.customer_id, sum(cla.claim_amount) as total_claims, pol.premium as total_premium
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+join claims cla on pol.policy_id = cla.policy_id
+group by cus.customer_id,pol.premium
+having sum(claim_amount) > pol.premium) as risk_cust;
+#wrong
+SELECT
+cus.customer_id,
+SUM(cla.claim_amount) AS total_claims,
+SUM(pol.premium) AS total_premium
+FROM customers cus
+JOIN policies pol 
+ON cus.customer_id = pol.customer_id
+LEFT JOIN claims cla 
+ON pol.policy_id = cla.policy_id
+GROUP BY cus.customer_id
+HAVING SUM(cla.claim_amount) > SUM(pol.premium);
+
+#Question 8 — Claim Approval Rate
+#Calculate the percentage of approved claims.
+#Expected output: approval_rate
+
+select 
+sum(case when status = 'Approved' then 1 else 0 end)/
+count(*) as approval_rate 
+from claims;
+
+-- SQL Interview Practice – Round 2
+-- Tables available:
+-- customers(customer_id, name, country)
+-- policies(policy_id, customer_id, premium)
+-- claims(claim_id, policy_id, claim_amount, claim_date)
+
+-- 1. List all customers and the number of policies they have.
+-- Output:
+-- customer_id | num_policies
+
+select cus.customer_id, coalesce(count(pol.policy_id),0) as num_policies
+from customers cus
+left join policies pol on cus.customer_id = pol.customer_id
+group by cus.customer_id;
+
+-- 2. Show customers who have at least one policy.
+-- Output:
+-- customer_id | name
+
+with sub_count as(
+select cus.customer_id, cus.customer_name, count(pol.policy_id) as count_policies
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+group by cus.customer_id, cus.customer_name)
+select customer_id,customer_name
+from sub_count
+where count_policies >=1 ;
+
+#best sol
+select distinct cus.customer_id, cus.customer_name
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id;
+
+-- 3. Calculate the total premium per customer.
+-- Output:
+-- customer_id | total_premium
+
+select cus.customer_id, coalesce(sum(pol.premium),0) as total_premium
+from customers cus
+left join policies pol on cus.customer_id = pol.customer_id
+group by cus.customer_id;
+
+-- 4. Calculate the average claim amount per policy.
+-- Output:
+-- policy_id | avg_claim
+
+select pol.policy_id, coalesce(avg(claim_amount),0) as avg_claim
+from policies pol
+left join claims cla on pol.policy_id = cla.policy_id
+group by pol.policy_id;
+
+-- 5. Find the top 3 customers with the highest total claim amount.
+-- Output:
+-- customer_id | total_claim
+
+select cus.customer_id, sum(claim_amount) as total_claim
+from customers cus 
+join policies pol on cus.customer_id = pol.customer_id
+join claims cla on pol.policy_id = cla.policy_id
+group by cus.customer_id
+order by sum(claim_amount) desc
+limit 3;
+
+-- 6. Show all policies and their number of claims.
+-- Output:
+-- policy_id | num_claims
+
+select pol.policy_id, count(cla.claim_id) as num_claims
+from policies pol
+join claims cla on pol.policy_id = cla.policy_id
+group by pol.policy_id;
+#is left 
+select pol.policy_id, count(cla.claim_id) as num_claims
+from policies pol
+left join claims cla on pol.policy_id = cla.policy_id
+group by pol.policy_id;
+
+-- 7. Find customers whose total claims exceed their total premiums.
+-- Output:
+-- customer_id | total_claim | total_premium
+
+select cus.customer_id, sum(cla.claim_amount) as total_claim, sum(pol.premium) as total_premium
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+left join claims cla on pol.policy_id = cla.policy_id
+group by cus.customer_id
+having total_claim > total_premium;
+#dont use alias, use the expressions
+
+-- 8. Find the country with the highest total claim amount.
+-- Output:
+-- country | total_claim
+
+select cus.country, sum(cla.claim_amount) as total_claim
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+join claims cla on pol.policy_id = cla.policy_id
+group by cus.country
+order by total_claim desc
+limit 1;
