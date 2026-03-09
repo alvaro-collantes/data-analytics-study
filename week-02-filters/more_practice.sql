@@ -253,6 +253,11 @@ select pol.policy_id, cus.customer_name, cus.country
 from policies pol
 left join customers cus on pol.customer_id = cus.customer_id
 ;
+#correction: every policy has a customer, use join
+select pol.policy_id, cus.customer_name, cus.country
+from policies pol
+join customers cus on pol.customer_id = cus.customer_id
+;
 
 /* Q3 */
 -- Find the total number of policies per country.
@@ -288,6 +293,14 @@ join claims cla on pol.policy_id = cla.policy_id
 group by cus.customer_name
 order by max(cla.claim_amount) desc
 limit 1;
+#correction: highest claim amount is sum
+select cus.customer_name, sum(cla.claim_amount) as highest_total_claim_amount
+from customers cus 
+join policies pol on pol.customer_id = cus.customer_id
+join claims cla on pol.policy_id = cla.policy_id
+group by cus.customer_name
+order by sum(cla.claim_amount) desc
+limit 1;
 
 /* Q7 */
 -- Find the average claim amount per country.
@@ -307,7 +320,13 @@ join policies pol on pol.customer_id = pol.customer_id
 join claims cla on pol.policy_id = cla.policy_id
 group by cus.customer_name
 having count(cla.claim_id) > 1;
-
+#correction: wrong prefix in the first join
+select cus.customer_name, count(cla.claim_id) total_claim
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+join claims cla on pol.policy_id = cla.policy_id
+group by cus.customer_name
+having count(cla.claim_id) > 1;
 
 /* ==============================
 INSURANCE ANALYTICS QUESTIONS
@@ -322,6 +341,13 @@ from (
 select pol.policy_id, pol.premium,sum(cla.claim_amount) as total_claim_amount
 from policies pol 
 join claims cla on pol.policy_id = cla.policy_id 
+group by pol.policy_id) as calcu_claim;
+#correction:use left join in case there are policies with no claims
+select policy_id, coalesce((total_claim_amount / premium),0) as loss_ratio 
+from (
+select pol.policy_id, pol.premium,sum(cla.claim_amount) as total_claim_amount
+from policies pol 
+left join claims cla on pol.policy_id = cla.policy_id 
 group by pol.policy_id) as calcu_claim;
 
 /* Q10 */
@@ -341,7 +367,11 @@ select date_format(claim_date, '%Y-%m') as months, claim_id, sum(claim_amount) a
 from claims 
 group by date_format(claim_date, '%Y-%m') , claim_id
 order by date_format(claim_date, '%Y-%m') asc;
- 
+#correction: dont add the id, not necessary
+select date_format(claim_date, '%Y-%m') as months, sum(claim_amount) as total_claim_amount
+from claims 
+group by date_format(claim_date, '%Y-%m') 
+order by date_format(claim_date, '%Y-%m') asc;
 /* Q12 */
 -- Calculate the claim approval rate per country.
 -- approval_rate = approved_claims / total_claims
@@ -354,6 +384,27 @@ from customers cus
 join policies pol on cus.customer_id = pol.customer_id
 join claims cla on cla.policy_id = pol.policy_id
 group by cus.country) as sub_app; 
+#correction: it should have count of the claims, not sum
+select country, (approved_claims/total_claims) as approval_rate
+from(
+select cus.country, count(cla.claim_amount) as total_claims,
+sum(case when cla.status = 'Approved' then 1 else 0 end) as approved_claims
+from customers cus
+join policies pol on cus.customer_id = pol.customer_id
+join claims cla on cla.policy_id = pol.policy_id
+group by cus.country) as sub_app; 
+
+#other simpler solution
+SELECT
+cus.country,
+SUM(CASE WHEN cla.status='Approved' THEN 1 ELSE 0 END) /
+COUNT(*) AS approval_rate
+FROM customers cus
+JOIN policies pol
+ON cus.customer_id = pol.customer_id
+JOIN claims cla
+ON pol.policy_id = cla.policy_id
+GROUP BY cus.country;
 
 /* Q13 */
 -- Find the top 3 policies with the highest total claim amount.
@@ -411,7 +462,10 @@ limit 1;
 /* Q18 */
 -- Find the percentage of rejected claims.
 
-select sum(case when status = 'Rejected' then 1 else 0 end)/count(status) percentage_of_rejected_claims
+select sum(case when status = 'Rejected' then 1 else 0 end)/count(status) as percentage_of_rejected_claims
+from claims;
+#correction: use count(*) 
+select sum(case when status = 'Rejected' then 1 else 0 end)/count(*) as percentage_of_rejected_claims
 from claims;
 
 /* Q19 */
@@ -422,6 +476,14 @@ from customers cus
 left join policies pol on cus.customer_id = pol.customer_id
 left join claims cla on pol.policy_id = cla.policy_id
 where cla.policy_id is null; 
+#correction: wrong logic , first is join and second is left
+SELECT cus.customer_name
+FROM customers cus
+JOIN policies pol
+ON cus.customer_id = pol.customer_id
+LEFT JOIN claims cla
+ON pol.policy_id = cla.policy_id
+WHERE cla.claim_id IS NULL;
 
 /* Q20 */
 -- Rank customers by their total claim amount (highest first).
