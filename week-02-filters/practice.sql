@@ -1455,3 +1455,29 @@ having count(*) >2
 ;
 
 select * from claims;
+
+SELECT country, client_name, claim_date
+FROM (
+  SELECT cli.country, cli.client_name,
+    cla.claim_date,
+    ROW_NUMBER() OVER(
+      PARTITION BY cli.country
+      ORDER BY cla.claim_date DESC
+    ) AS rn
+  FROM clients cli
+  JOIN claims cla ON cli.client_id = cla.client_id
+) AS ranked
+WHERE rn = 1;
+use sql_practice;
+SELECT country, client_name, claim_date
+FROM (
+  SELECT cli.country, cli.client_name,
+    cla.claim_date,
+    ROW_NUMBER() OVER(
+      PARTITION BY cli.country
+      ORDER BY cla.claim_date DESC
+    ) AS rn
+  FROM clients cli
+  JOIN claims cla ON cli.client_id = cla.client_id
+) AS ranked
+WHERE rn = 1
