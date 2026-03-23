@@ -41,7 +41,9 @@ insert into orders(order_id, order_date,customer_id,region,segment)
 values ('CA-FAKE-001','2017-06-15','CUST-999','West','Consumer');
 
 select 
-	o.order_id, d.sales
+	o.order_id, d.sales, o.order_date
 from orders o
 left join line_items d on o.order_id=d.order_id
-where d.order_id is null;  
+where d.order_id is null; 
+
+ 
