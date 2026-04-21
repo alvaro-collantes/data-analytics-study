@@ -14,4 +14,12 @@ group by customer_name
 order by total_sales desc
 limit 10;
 
+#Exercise 2: Partition Ranks within groups
+select region, customer_name,sum(sales) as total_sales,
+dense_rank()over(partition by region order by sum(sales) desc) as rnk_region
+from sales_raw
+group by region, customer_name
+order by region,rnk_region
+limit 20;
 
+#Partition by make restart at 1 at each region 
