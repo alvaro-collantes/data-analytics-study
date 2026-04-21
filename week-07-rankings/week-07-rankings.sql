@@ -36,3 +36,14 @@ round(total_sales-Lag(total_sales,1) over(order by ym),2) as monthly_change
 from monthly 
 order by ym;
 
+#Exercise 4: Running Total
+with monthly as( 
+select date_format(order_date,'%Y-%m') as ym,
+sum(sales) as total_sales
+from sales_raw
+group by ym
+)
+select ym, total_sales,
+sum(total_sales) over(order by ym) as running_total
+from monthly
+order by ym;
