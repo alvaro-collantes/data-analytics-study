@@ -21,5 +21,18 @@ from sales_raw
 group by region, customer_name
 order by region,rnk_region
 limit 20;
-
 #Partition by make restart at 1 at each region 
+
+#Exercise 3:Lag for month over month
+
+with monthly as (
+select date_format(order_date, '%Y-%m') as ym, sum(sales) as total_sales
+from sales_raw
+group by ym
+)
+Select ym, total_sales, 
+Lag(total_sales,1) over(order by ym) as prev_month_sales,
+round(total_sales-Lag(total_sales,1) over(order by ym),2) as monthly_change
+from monthly 
+order by ym;
+
