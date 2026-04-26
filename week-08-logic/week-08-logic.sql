@@ -16,3 +16,16 @@ select *
 from ranked_months
 where rnk <= 5
 ;
+
+#Exercise 2: customers whose total sales exceed the overall average
+select customer_name,sum(sales) as total_sales
+from sales_raw
+group by customer_name
+having sum(sales) > (
+	select avg(total_per_customer)
+    from (select customer_name, sum(sales) as total_per_customer
+			from sales_raw
+			group by customer_name) as customer_total
+)
+order by total_sales desc 
+limit 5;
