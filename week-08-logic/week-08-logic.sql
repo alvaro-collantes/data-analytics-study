@@ -29,3 +29,15 @@ having sum(sales) > (
 )
 order by total_sales desc 
 limit 5;
+
+#Exercise 3: Classification 
+select order_id, sales, profit,
+case 
+	when profit < 0 then 'Loss'
+    when profit/sales >= 0.25 then 'High Margin'
+    when profit/sales >= 0.10 then 'Medium Margin'
+    else 'Low Margin'
+end as margin_tier
+from sales_raw
+limit 20;
+
