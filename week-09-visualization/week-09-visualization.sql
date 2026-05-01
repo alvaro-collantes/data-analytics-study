@@ -16,3 +16,17 @@ group by year_months;
 select * 
 from monthly_sales 
 where year_months >= '2017';
+
+#Exercise 2: Top 10 Products
+Create view top_products as 
+select 
+	product_name,
+    sum(sales) as total_sales
+from sales_raw
+group by product_name
+order by total_sales desc
+;
+
+select *
+from top_products
+limit 10;
