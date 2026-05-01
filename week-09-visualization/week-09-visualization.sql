@@ -30,3 +30,18 @@ order by total_sales desc
 select *
 from top_products
 limit 10;
+
+#Exercise 3:KPI Summary Card
+create view kip_summary as
+select 
+	sum(sales) as total_sales,
+    sum(profit) as total_profit,
+    round(sum(profit)/sum(sales) *100 ,2) as margin_pct,
+    count(distinct(order_id)) as total_orders,
+    count(distinct(customer_id)) as total_customers
+from sales_raw;
+
+select * 
+from kip_summary;
+    
+    
