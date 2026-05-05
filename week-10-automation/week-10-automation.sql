@@ -25,6 +25,6 @@ SELECT
 FROM sales_raw
 GROUP BY year, month, year_months, Category, Region, Segment;
 
-#Filter Query
+#Filter Query for a year and region 
 SELECT * FROM v_sales_detail 
 WHERE year = 2017 AND Region = 'West';
