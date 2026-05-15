@@ -6,3 +6,7 @@
 2026-05-15 23:26:34,411 INFO Loading Sample - Superstore.csv
 2026-05-15 23:26:34,482 INFO Filtered to year: 2017
 2026-05-15 23:26:34,493 INFO Saved to summary_all_2017.csv
+2026-05-15 23:27:10,336 INFO Loading Sample - Superstore.csv
+2026-05-15 23:27:10,405 INFO Filtered to region: West
+2026-05-15 23:27:10,407 INFO Filtered to year: 2017
+2026-05-15 23:27:10,417 INFO Saved to summary_West_2017.csv
