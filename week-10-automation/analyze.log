@@ -1,0 +1,5 @@
+2026-05-15 23:24:42,795 INFO Loading Sample - Superstore.csv
+2026-05-15 23:24:42,966 INFO Saved to summary_all_all.csv
+2026-05-15 23:25:49,950 INFO Loading Sample - Superstore.csv
+2026-05-15 23:25:50,055 INFO Filtered to region: West
+2026-05-15 23:25:50,074 INFO Saved to summary_West_all.csv
